@@ -1,0 +1,22 @@
+---
+  - name: VM Migrate Playbook
+    hosts: localhost
+    gather_facts: no
+    vars:
+     auth:
+      auth_url: https://<POWERVC>:5000/v3
+      project_name: PROJECT-NAME
+      username: USERID
+      password: PASSWORD
+      project_domain_name: PROJECT_DOMAIN_NAME
+      user_domain_name: USER_DOMAIN_NAME
+    tasks:
+       - name: Perform VM Migrate Operations
+         ibm.powervc.migate_vm:
+            auth: "{{ AUTH }}"
+            name: "NAME"
+	    host: "HOST"
+            validate_certs: no
+         register: result
+       - debug:
+            var: result

@@ -1,0 +1,21 @@
+---
+  - name: Perform Soft Pin Operations on the VM
+    hosts: all
+    gather_facts: no
+    vars:
+     auth:
+      auth_url: https://<POWERVC>:5000/v3
+      project_name: PROJECT-NAME
+      username: USERID
+      password: PASSWORD
+      project_domain_name: PROJECT_DOMAIN_NAME
+      user_domain_name: USER_DOMAIN_NAME
+    tasks:
+       - name: Pin VM Task
+         ibm.powervc.pin_vm:
+            auth: "{{ auth }}"
+            name: "NAME"
+            pin_type: "PIN_TYPE"
+         register: result
+       - debug:
+            var: result

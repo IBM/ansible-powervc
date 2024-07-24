@@ -1,0 +1,23 @@
+  - name: Storage Connectivity Group Operations from PowerVC Server
+    hosts: all
+    gather_facts: no
+    vars:
+     auth:
+      auth_url: https://<POWERVC>:5000/v3
+      project_name: PROJECT-NAME
+      username: USERID
+      password: PASSWORD
+      project_domain_name: PROJECT_DOMAIN_NAME
+      user_domain_name: USER_DOMAIN_NAME
+    tasks:
+       - name: Performing the Create SCG Operation
+         ibm.powervc.scg_operations:
+            auth: "{{ AUTH }}"
+            state: "present"
+            display_name: <DISPLAY_NAME>
+            vios_ids: <VIOS_ID>
+            boot_connectivity: <BOOT_CONNECTIVITY_VAL>
+            data_connectivity: <DATA_CONNECTIVITY_VAL>
+         register: result
+       - debug:
+            var: result
