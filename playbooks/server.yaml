@@ -19,7 +19,7 @@
           max_count: 1
           collocation_rule_name: "COLLOCATION_RULE_NAME"
           nics:
-            - net-name: "NET-NAME"
+            - network_name: "NETWORK_NAME"
               fixed_ip: "FIXED_IP"
           validate_certs: false
           flavor: "FLAVOR"
