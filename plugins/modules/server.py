@@ -59,16 +59,16 @@ EXAMPLES = '''
       project_domain_name: PROJECT_DOMAIN_NAME
       user_domain_name: USER_DOMAIN_NAME
       - name: Create a new instance and attaches to a network
-        ibm.powervc.server:
+        powervc.cloud.server:
           auth: "{{ auth }}"
-          name: "NAME"
-          image: "IMAGE"
+          name: "VM_NAME"
+          image: "VM_IMAGE"
           timeout: 200
-          max_count: 1
+          max_count: "COUNT"
           collocation_rule_name: "COLLOCATION_RULE_NAME"
           nics:
-            - net-name: "NET-NAME"
-              fixed_ip: "192.168.128.64"
+            - network_name: "NETWORK_NAME"
+              fixed_ip: 192.168.128.64
           validate_certs: false
           flavor: "FLAVOR_NAME"
           state: present
@@ -88,9 +88,9 @@ EXAMPLES = '''
       project_domain_name: PROJECT_DOMAIN_NAME
       user_domain_name: USER_DOMAIN_NAME
       - name: Delete the VM based on the input name provided
-        ibm.powervc.server:
+        powervc.cloud.server:
           auth: "{{ auth }}"
-          name: "NAME"
+          name: "VM_NAME"
           state: absent
         register: result
       - name: Disply server info
@@ -98,9 +98,8 @@ EXAMPLES = '''
 
 '''
 from ansible_collections.openstack.cloud.plugins.module_utils.openstack import OpenStackModule
-from ansible_collections.powervc.cloud.plugins.module_utils.crud_server import server_ops,server_flavor,get_collocation_rules_id
+from ansible_collections.powervc.cloud.plugins.module_utils.crud_temps import server_ops,server_flavor,get_collocation_rules_id
 import copy
-#import json
 import base64
 
 class ServerOpsModule(OpenStackModule):
@@ -115,6 +114,7 @@ class ServerOpsModule(OpenStackModule):
         host=dict(),
         metadata=dict(type='raw', aliases=['meta']),
         nics=dict(default=[], type='list', elements='raw'),
+        image_volume_override=dict(default=[], type='list', elements='raw'),
         network=dict(),
         user_data=dict(),
         max_count=dict(type='int'),
@@ -142,15 +142,13 @@ class ServerOpsModule(OpenStackModule):
             if not isinstance(net, dict):
                 self.fail_json(
                     msg="Each entry in the 'nics' parameter must be a dict.")
-            #if net.get('fixed_ip'):
-            #    nics.append(net)
-            if net.get('net-id'):
+            if net.get('network_id'):
                 nics.append(net)
-            elif net.get('net-name'):
+            elif net.get('network_name'):
                 network_id = self.conn.network.find_network(
-                    net['net-name'], ignore_missing=False).id
+                    net['network_name'], ignore_missing=False).id
                 net = copy.deepcopy(net)
-                del net['net-name']
+                del net['network_name']
                 net['uuid'] = network_id
                 nics.append(net)
             elif net.get('fixed_ip'):
@@ -169,6 +167,48 @@ class ServerOpsModule(OpenStackModule):
                 nics[-1]['tag'] = net['tag']
         return nics
 
+    def _parse_image_volume_override(self):
+        image_volume_override = []
+        stringified_nets = self.params['image_volume_override']
+
+        if not isinstance(stringified_nets, list):
+            self.fail_json(msg="The 'image_volume_override' parameter must be a list.")
+
+        nets = [(dict((nested_net.split('='),))
+                for nested_net in net.split(','))
+                if isinstance(net, str) else net
+                for net in stringified_nets]
+
+        for net in nets:
+            if not isinstance(net, dict):
+                self.fail_json(
+                    msg="Each entry in the 'image_volume_override' parameter must be a dict.")
+            if net.get('volume_id'):
+                image_volume_override.append(net)
+            elif net.get('net-name'):
+                network_id = self.conn.network.find_network(
+                    net['net-name'], ignore_missing=False).id
+                net = copy.deepcopy(net)
+                del net['net-name']
+                net['uuid'] = network_id
+                image_volume_override.append(net)
+            elif net.get('template_id'):
+                image_volume_override.append(net)
+            elif net.get('port-id'):
+                image_volume_override.append(net)
+            elif net.get('port-name'):
+                port_id = self.conn.network.find_port(
+                    net['port-name'], ignore_missing=False).id
+                net = copy.deepcopy(net)
+                del net['port-name']
+                net['port-id'] = port_id
+                image_volume_override.append(net)
+
+            if 'tag' in net:
+                image_volume_override[-1]['tag'] = net['tag']
+        return image_volume_override
+
+
     def run(self):
         try:
             authtoken = self.conn.auth_token
@@ -183,6 +223,7 @@ class ServerOpsModule(OpenStackModule):
             collocation_rule = self.params['collocation_rule_name']
             network = self.params['network']
             nics = self.params['nics']
+            image_vol_template = self.params['image_volume_override']
             key_name = self.params['key_name']
             meta = self.params['metadata']
             volume_name = self.params['volume_name']
@@ -214,8 +255,12 @@ class ServerOpsModule(OpenStackModule):
                     index += 1
                 vol_dict = {"block_device_mapping_v2": vol_list}
             if state == "present":
-                flavor = server_flavor(self, self.conn, authtoken, tenant_id, flavor_id, imageRef)
+                if image_vol_template:
+                    volid = image_vol_template[0]['volume_id']
+                    template_id = image_vol_template[0]['template_id']
+                flavor = server_flavor(self, self.conn, authtoken, tenant_id, flavor_id, imageRef, volid, template_id)
                 collocation_rule_id = get_collocation_rules_id(self, self.conn, authtoken, tenant_id, collocation_rule)
+                availability_zone = ":" + availability_zone
                 vm_data = {"server": {
                 "name": vm_name,
                 "imageRef": imageRef,
@@ -230,7 +275,8 @@ class ServerOpsModule(OpenStackModule):
                 "os:scheduler_hints": collocation_rule_id}
                 res = server_ops(self, self.conn, authtoken, tenant_id, vm_name, state, vm_data, vm_id=None)
             elif state == "absent":
-                res = server_ops(self, self.conn, authtoken, tenant_id, vm_name, state, vm_data=None, vm_id=vmid)
+                vm_data = None
+                res = server_ops(self, self.conn, authtoken, tenant_id, vm_name, state, vm_data, vm_id=vmid)
             self.exit_json(changed=False, result=res)
         except Exception as e:
                 self.fail_json(msg=f"An unexpected error occurred: {str(e)}", changed=False)
@@ -243,3 +289,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
