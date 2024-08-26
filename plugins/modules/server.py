@@ -37,12 +37,33 @@ options:
     description:
       - The key pair name to be used when creating a instance.
     type: str
+  network:
+     description:
+       - Name or ID of a network to attach this instance to. A simpler
+         version of the I(nics) parameter, only one of I(network) or I(nics)
+         should be supplied.
+       - This server attribute cannot be updated.
+     type: str
+  nics:
+     description:
+       - A list of networks to which the instance's interface should
+         be attached. Networks may be referenced by network_id/network_name
+     type: list
+     elements: raw
+     default: []
+  volume_name:
+     description:
+       - A list of volumes that are to be attached to the VM
+     type: list
+     elements: raw
+     default: []
   state:
     description:
       - VM Operation to be perfomed
     choices: [absent, present]
     required: yes
     type: str
+    
 '''
 
 EXAMPLES = '''
@@ -68,7 +89,7 @@ EXAMPLES = '''
           collocation_rule_name: "COLLOCATION_RULE_NAME"
           nics:
             - network_name: "NETWORK_NAME"
-              fixed_ip: 192.168.128.64
+              fixed_ip: "FIXED_IP" # "fixed_ip: 192.168.10.20"
           validate_certs: false
           flavor: "FLAVOR_NAME"
           volume_name: ["VOLUME_1","VOLUME_2"]
