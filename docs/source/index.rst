@@ -46,7 +46,7 @@ Licensed under
 Author Information
 ==================
 
-This Ansible collection is maintained by the IBM Power VIOS development team.
+This Ansible collection is maintained by the IBM PowerVC development team.
 
 .. toctree::
    :maxdepth: 2
