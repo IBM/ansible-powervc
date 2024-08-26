@@ -1,8 +1,8 @@
 Installation
 ============
 
-Steps to install Ansible on RHEL Linux:
-=======================================
+Steps to install Ansible:
+==========================
 
 Step 1:
 
@@ -10,7 +10,7 @@ a. sudo dnf install -y ansible
 
 b. ansible --version
 
-You should now have Ansible installed and ready to use on your RHEL 9.4 system.
+You should now have Ansible installed and ready to use on your RHEL system.
 
 Step 2: Installing from pip
 If you prefer to install the ansible using pip, follow these steps:
@@ -22,6 +22,9 @@ a. sudo dnf install python3 python3-pip
 b. pip3 install ansible
 
 c. ansible --version
+
+Refer https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html and https://docs.ansible.com/ansible/latest/installation_guide/index.html 
+for more details
 
 OpenStack Ansible modules and PowerVC custom ansible modules use openstacksdk python libraries to perform operations in PowerVC. You must install OpenStack SDK before proceeding with the playbook execution. 
 
