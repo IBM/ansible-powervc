@@ -79,7 +79,7 @@ EXAMPLES = '''
 
 
 from ansible_collections.openstack.cloud.plugins.module_utils.openstack import OpenStackModule
-from ansible_collections.powervc.cloud.plugins.module_utils.crud_scg import scg_ops
+from ansible_collections.ibm.powervc.plugins.module_utils.crud_scg import scg_ops
 
 class SCGOpsModule(OpenStackModule):
     argument_spec = dict(
