@@ -59,7 +59,7 @@ EXAMPLES = '''
       project_domain_name: PROJECT_DOMAIN_NAME
       user_domain_name: USER_DOMAIN_NAME
       - name: Create a new instance and attaches to a network
-        powervc.cloud.server:
+        ibm.powervc.server:
           auth: "{{ auth }}"
           name: "VM_NAME"
           image: "VM_IMAGE"
@@ -71,6 +71,7 @@ EXAMPLES = '''
               fixed_ip: 192.168.128.64
           validate_certs: false
           flavor: "FLAVOR_NAME"
+          volume_name: ["VOLUME_1","VOLUME_2"]
           state: present
         register: result
       - name: Disply server info
@@ -88,7 +89,7 @@ EXAMPLES = '''
       project_domain_name: PROJECT_DOMAIN_NAME
       user_domain_name: USER_DOMAIN_NAME
       - name: Delete the VM based on the input name provided
-        powervc.cloud.server:
+        ibm.powervc.server:
           auth: "{{ auth }}"
           name: "VM_NAME"
           state: absent
@@ -98,7 +99,7 @@ EXAMPLES = '''
 
 '''
 from ansible_collections.openstack.cloud.plugins.module_utils.openstack import OpenStackModule
-from ansible_collections.powervc.cloud.plugins.module_utils.crud_server import server_ops,server_flavor,get_collocation_rules_id
+from ansible_collections.ibm.powervc.plugins.module_utils.crud_server import server_ops,server_flavor,get_collocation_rules_id
 import copy
 import base64
 
