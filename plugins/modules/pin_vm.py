@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'requirements': ['python >= 3.9','ansible >= openstack.cloud'],
+                    'requirements': ['python >= 3.6','ansible >= openstack.cloud'],
                     'status': ['testing'],
                     'supported_by': 'PowerVC'}
 
@@ -9,7 +9,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = '''
 ---
 module: pin_vm
-short_description: To Fetch the SCG Details.
+short_description: To perform Pin VM operations.
 description:
   - This playbook helps in performing the Pin operations on the VM provided.
 options:
