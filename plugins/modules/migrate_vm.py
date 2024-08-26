@@ -50,7 +50,7 @@ EXAMPLES = '''
 '''
 
 from ansible_collections.openstack.cloud.plugins.module_utils.openstack import OpenStackModule
-from ansible_collections.powervc.cloud.plugins.module_utils.crud_migrate import migrate_ops
+from ansible_collections.ibm.powervc.plugins.module_utils.crud_migrate import migrate_ops
 
 class MigrateVMModule(OpenStackModule):
     argument_spec = dict(
