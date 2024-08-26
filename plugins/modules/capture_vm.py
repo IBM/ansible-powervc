@@ -48,7 +48,7 @@ EXAMPLES = '''
 
 
 from ansible_collections.openstack.cloud.plugins.module_utils.openstack import OpenStackModule
-from ansible_collections.powervc.cloud.plugins.module_utils.crud_capture_vm import capture_ops
+from ansible_collections.ibm.powervc.plugins.module_utils.crud_capture_vm import capture_ops
 
 class CaptureVMModule(OpenStackModule):
     argument_spec = dict(
