@@ -30,12 +30,9 @@ def get_endpoint_url_by_service_name(mod, connectn, service_name, tenant_id):
 
 
 def get_collocation_rules_id(mod, connectn, authtoken, tenant_id, collocation_rule_name):
-    """
-    Gets the Collocation rule ID from the Collocation Rule Name
-    """
     service_name = "compute"
     endpoint_compute = get_endpoint_url_by_service_name(mod, connectn, service_name, tenant_id)
-    rule_url = f"{endpoint_compute}/os-server-groups"    
+    rule_url = f"{endpoint_compute}/os-server-groups"
     headers_scg = get_headers(authtoken)
     responce = requests.get(rule_url, headers=headers_scg, verify=False)
     collocation_id = None
@@ -46,18 +43,15 @@ def get_collocation_rules_id(mod, connectn, authtoken, tenant_id, collocation_ru
     return collocation_id
 
 
-def server_flavor(mod, connectn, authtoken, tenant_id, flavor_id, image_id):
-    """
-    Gets the Flavor Details from the provided compute_template/flavor name.
-    """
+def server_flavor(mod, connectn, authtoken, tenant_id, flavor_id, image_id, volid, template_id):
     service_name = "compute"
     endpoint_compute = get_endpoint_url_by_service_name(mod, connectn, service_name, tenant_id)
     image_url = f"{endpoint_compute}/images/{image_id}"
     headers_scg = get_headers(authtoken)
     responce = requests.get(image_url, headers=headers_scg, verify=False)
-    volume_id = responce.json()['image']['metadata']['block_device_mapping'][0]['volume_id']
+    volume_id = responce.json()['image']['metadata']['block_device_mapping'][0]['volume_id'] #to get image volume_id
     service_name = "volume"
-    endpoint = get_endpoint_url_by_service_name(mod, connectn, service_name, tenant_id)    
+    endpoint = get_endpoint_url_by_service_name(mod, connectn, service_name, tenant_id)
     vol_url = f"{endpoint}/volumes/{volume_id}"
     responce = requests.get(vol_url, headers=headers_scg,  verify=False)
     size = responce.json()['volume']['size']
@@ -66,30 +60,30 @@ def server_flavor(mod, connectn, authtoken, tenant_id, flavor_id, image_id):
     flavor_info = responce.json()
     flavor_details={"ram": responce.json()["flavor"]["ram"],"vcpus": responce.json()["flavor"]["vcpus"],"disk": size}
     specsvmurl = f"{flavor_url}/os-extra_specs"
-    flavor_specs = requests.get(specsvmurl, headers=headers_scg,  verify=False)
+    responce = requests.get(specsvmurl, headers=headers_scg,  verify=False)
+    flavor_specs = responce.json()
+    image_temp_id = "powervm:image_volume_type_" + volid
+    flavor_specs['extra_specs'][image_temp_id] = template_id
+    print("Finals ",flavor_specs, flavor_details)
     flavor_data={
             **flavor_details,  # Merge flavor_details
-            **flavor_specs.json() # Include flavor_data as "extra_specs"
+            **flavor_specs # Include flavor_data as "extra_specs"
     }
+    print("Final ",flavor_data)
     return flavor_data
 
 def create_vm(headers_vm,vm_url,data,vm_name):
-    """
-    Performs VM Create operation
-    """
     responce = requests.post(vm_url, headers=headers_vm, json=data, verify=False)
+    print("responce",responce.text)
     if responce.ok:
         return (f"VM '{vm_name}' create operation is done", responce.json())
-
+    else:
+        return (f"VM '{vm_name}' create operation failed", responce.json())
 
 def delete_vm(headers_vm,vm_url,vm_name):
-    """
-    Performs VM Delete operation
-    """
     responce = requests.delete(vm_url, headers=headers_vm, verify=False)
     if responce.ok:
         return (f"VM '{vm_name}' has been removed/deleted")
-
 
 def server_ops(mod, connectn, authtoken, tenant_id, vm_name, state, data, vm_id=None):
     service_name = "compute"
@@ -99,7 +93,7 @@ def server_ops(mod, connectn, authtoken, tenant_id, vm_name, state, data, vm_id=
         if not vm_id:
             vm_id = mod.conn.compute.find_server(vm_name, ignore_missing=False).id
         vm_url = f"{endpoint}/servers/{vm_id}"
-        result = delete_vm(headers_vm,vm_url,vm_name)
+        result=delete_vm(headers_vm,vm_url,vm_name)
     elif state == 'present':
         json_string = json.dumps(data)
         input_data = json.loads(json_string.replace("'", '"'))
@@ -109,6 +103,7 @@ def server_ops(mod, connectn, authtoken, tenant_id, vm_name, state, data, vm_id=
             if v is not None
         }
         json_data = {"server": filtered_data}
+        print("json_data",json_data)
         vm_url = f"{endpoint}/servers"
-        result = create_vm(headers_vm,vm_url,json_data,vm_name)
+        result=create_vm(headers_vm,vm_url,json_data,vm_name)
     return result
