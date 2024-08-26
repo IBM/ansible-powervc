@@ -51,6 +51,13 @@ options:
      type: list
      elements: raw
      default: []
+  image_volume_override:
+     description:
+       - A list of volume id and templated id which will be attached to the VM.
+         Referenced by volume_id and template_id.
+     type: list
+     elements: raw
+     default: []     
   volume_name:
      description:
        - A list of volumes that are to be attached to the VM
@@ -90,10 +97,13 @@ EXAMPLES = '''
           nics:
             - network_name: "NETWORK_NAME"
               fixed_ip: "FIXED_IP" # "fixed_ip: 192.168.10.20"
-          validate_certs: false
+          image_volume_override:
+            - volume_id: "VOLUME_ID"
+              template_id: "TEMPLATE_ID"
           flavor: "FLAVOR_NAME"
           volume_name: ["VOLUME_1","VOLUME_2"]
           state: present
+          validate_certs: false
         register: result
       - name: Disply server info
         debug: var=result
