@@ -1,5 +1,15 @@
 Installation
 ============
+OpenStack Ansible modules and PowerVC custom ansible modules use openstacksdk python libraries to perform operations in PowerVC. You must install OpenStack SDK before proceeding with the playbook execution. 
+You can install the OpenStack SDK by using the pip install openstacksdk command.
+Ansible does not contain the required collections and modules be default. You can run these commands to install OpenStack and PowerVC ansible collections.
+=>	Python openstacksdk
+=>	openstack.cloud ansible collection
+=>	powervc.cloud ansible custom collection
+=>	ansible-galaxy collection install openstacksdk
+=>	ansible-galaxy collection install powervc-cloud-1.0.0.tar.gz 
+
+Note:	Download the powervc-cloud-1.0.0.tar.gz file from the repo.
 
 You can install the **IBM PowerVC collection** using one of these options:
 Ansible Galaxy or a local build.
