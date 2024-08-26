@@ -8,21 +8,24 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = '''
 ---
-module: unmanage_vm
-short_description: For Unmanaging the VM.
+module: manage_vm
+short_description: For Managing the VM.
 description:
-  - This playbook helps in performing the Unmanage operations on the VM provided.
+  - This playbook helps in performing the Manage operations on the VM provided.
 options:
-  name:
+  id:
     description:
-      - Name of the VM
+      - ID of the VM
     type: str
-
+  host:
+    description:
+      - Host of the VM
+    type: str
 '''
 
 EXAMPLES = '''
 ---
-  - name: VM Unmanage Playbook
+  - name: VM Manage Playbook
     hosts: localhost
     gather_facts: no
     vars:
@@ -34,10 +37,11 @@ EXAMPLES = '''
       project_domain_name: PROJECT_DOMAIN_NAME
       user_domain_name: USER_DOMAIN_NAME
     tasks:
-       - name: Perform VM Unmanage Operations
-         powervc.cloud.unmanage_vm:
+       - name: Perform VM Manage Operations
+         ibm.powervc.manage_vm:
             auth: "{{ auth }}"
-            name: "ansible_test_vm"
+            id: "VM_ID"
+            host: "HOST"
             validate_certs: no
          register: result
        - debug:
