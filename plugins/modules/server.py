@@ -98,7 +98,7 @@ EXAMPLES = '''
 
 '''
 from ansible_collections.openstack.cloud.plugins.module_utils.openstack import OpenStackModule
-from ansible_collections.powervc.cloud.plugins.module_utils.crud_temps import server_ops,server_flavor,get_collocation_rules_id
+from ansible_collections.powervc.cloud.plugins.module_utils.crud_server import server_ops,server_flavor,get_collocation_rules_id
 import copy
 import base64
 
