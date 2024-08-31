@@ -65,8 +65,6 @@ class ManageVMModule(OpenStackModule):
     def run(self):
         authtoken = self.conn.auth_token
         tenant_id = self.conn.session.get_project_id()
-        #vm_name = self.params['name']
-        vm_name = "Test"
         vm_id  = self.params['id']
         host = self.params['host']
         #vm_id = self.conn.compute.find_server(vm_name, ignore_missing=False).id
