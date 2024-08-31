@@ -44,7 +44,6 @@ def manage_ops(mod, connectn, authtoken, tenant_id, vm_id, host_display_name_val
     endpoint = get_endpoint_url_by_service_name(mod, connectn, service_name, tenant_id)
     unmanage_data = {"servers": [vm_id]}
     url = f"{endpoint}/os-hypervisors/detail?include_remote_restart_enabled=true"
-#    url = "https://9.114.116.61:8774/v2.1/ef714ed8d94f46ddb4e136c72c14f918/os-hypervisors/detail?include_remote_restart_enabled=true"
     responce = requests.get(url, headers=headers_scg,  verify=False)
     #host_display_name_value = "neo50-9.47.73.8"
     data = responce.json()
@@ -56,10 +55,7 @@ def manage_ops(mod, connectn, authtoken, tenant_id, vm_id, host_display_name_val
             result = hypervisor["service"]["host"]
             break
 
-    #print(result)
-    #url = "https://9.114.116.61:8774/v2.1/ef714ed8d94f46ddb4e136c72c14f918/os-hosts/824721L_215441A/onboard"
     url = f"{endpoint}/os-hosts/{result}/onboard"
-    #manage_data = '{"synchronous":false,"servers":["050960ea-753a-488b-87da-b8516fd78faf"],"preparation":{"servers":[],"network_vswitch":"","move_network_components":false}}'
     manage_data = {"synchronous":"false","servers":[vm_id],"preparation":{"servers":[],"network_vswitch":"","move_network_components":"false"}}
     result = manage_vm(mod, endpoint, url, authtoken, vm_id, manage_data)
     return result
