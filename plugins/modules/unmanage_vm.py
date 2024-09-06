@@ -44,6 +44,19 @@ EXAMPLES = '''
        - debug:
             var: result
 
+  - name: VM Unmanage Playbook
+    hosts: localhost
+    gather_facts: no
+    tasks:
+       - name: Perform VM Unmanage Operations
+         ibm.powervc.unmanage_vm:
+            cloud: "CLOUD_NAME"
+            name: "NAME"
+            validate_certs: no
+         register: result
+       - debug:
+            var: result
+
 '''
 
 

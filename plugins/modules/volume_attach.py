@@ -53,6 +53,20 @@ EXAMPLES = '''
        - debug:
             var: result
 
+  - name: VM Volume Attach Playbook
+    hosts: localhost
+    gather_facts: no
+    tasks:
+       - name: Perform VM Volume Attach Operations
+         ibm.powervc.volume_attach:
+            cloud: "CLOUD_NAME"
+            name: "NAME"
+            volume_name: ["VOL_NAME1","VOL_NAME2","VOL_NAME3"]
+            validate_certs: no
+         register: result
+       - debug:
+            var: result
+
 '''
 
 from ansible_collections.openstack.cloud.plugins.module_utils.openstack import OpenStackModule

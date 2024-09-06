@@ -44,6 +44,16 @@ EXAMPLES = '''
        - debug:
             var: result
 
+  - name: List all the SCG Details Playbook
+    hosts: all
+    gather_facts: no
+    tasks:
+       - name: Get All the SCG Details
+         ibm.powervc.scg_info:
+            cloud: "CLOUD_NAME"
+         register: result
+       - debug:
+            var: result
 
   - name: List a Specific SCG Details Playbook
     hosts: all

@@ -47,6 +47,20 @@ EXAMPLES = '''
        - debug:
             var: result
 
+  - name: VM Migrate Playbook
+    hosts: localhost
+    gather_facts: no
+    tasks:
+       - name: Perform VM Migrate Operations
+         ibm.powervc.migate_vm:
+            cloud: "CLOUD_NAME"
+            name: "NAME"
+	    host: "HOST"
+            validate_certs: no
+         register: result
+       - debug:
+            var: result
+
 '''
 
 from ansible_collections.openstack.cloud.plugins.module_utils.openstack import OpenStackModule
