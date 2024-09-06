@@ -108,6 +108,31 @@ EXAMPLES = '''
       - name: Disply server info
         debug: var=result
 
+  - name: PowerVC Create VM Playbook
+    hosts: localhost
+    gather_facts: no
+      - name: Create a new instance and attaches to a network
+        ibm.powervc.server:
+          cloud: "CLOUD_NAME"
+          name: "VM_NAME"
+          image: "VM_IMAGE"
+          timeout: 200
+          max_count: "COUNT"
+          collocation_rule_name: "COLLOCATION_RULE_NAME"
+          nics:
+            - network_name: "NETWORK_NAME"
+              fixed_ip: "FIXED_IP" # "fixed_ip: 192.168.10.20"
+          image_volume_override:
+            - volume_id: "VOLUME_ID"
+              template_id: "TEMPLATE_ID"
+          flavor: "FLAVOR_NAME"
+          volume_name: ["VOLUME_1","VOLUME_2"]
+          state: present
+          validate_certs: false
+        register: result
+      - name: Disply server info
+        debug: var=result
+
   - name: PowerVC Delete VM Playbook
     hosts: localhost
     gather_facts: no
