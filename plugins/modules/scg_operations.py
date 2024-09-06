@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'requirements': ['python >= 3.9','ansible >= openstack.cloud'],
+                    'requirements': ['python >= 3.6','ansible >= openstack.cloud'],
                     'status': ['testing'],
                     'supported_by': 'PowerVC'}
 
@@ -75,11 +75,28 @@ EXAMPLES = '''
        - debug:
             var: result
 
+  - name: Storage Connectivity Group Operations from PowerVC Server
+    hosts: all
+    gather_facts: no
+    tasks:
+       - name: Performing the Create SCG Operation
+         ibm.powervc.scg_operations:
+            cloud: "{{ CLOUD_NAME }}"
+            state: "present"
+            display_name: <DISPLAY_NAME>
+            vios_ids: <VIOS_ID>
+            boot_connectivity: <BOOT_CONNECTIVITY_VAL>
+            data_connectivity: <DATA_CONNECTIVITY_VAL>
+         register: result
+       - debug:
+            var: result
+
+
 '''
 
 
 from ansible_collections.openstack.cloud.plugins.module_utils.openstack import OpenStackModule
-from ansible_collections.powervc.cloud.plugins.module_utils.crud_scg import scg_ops
+from ansible_collections.ibm.powervc.plugins.module_utils.crud_scg import scg_ops
 
 class SCGOpsModule(OpenStackModule):
     argument_spec = dict(
