@@ -35,8 +35,23 @@ EXAMPLES = '''
       user_domain_name: USER_DOMAIN_NAME
     tasks:
        - name: Perform VM Capture Operations
-         powervc.cloud.capture_vm:
+         ibm.powervc.capture_vm:
             auth: "{{ auth }}"
+            name: "NAME"
+            image_name: "IMAGE_NAME"
+            validate_certs: no
+         register: result
+       - debug:
+            var: result
+
+
+  - name: VM Capture Playbook
+    hosts: localhost
+    gather_facts: no
+    tasks:
+       - name: Perform VM Capture Operations
+         ibm.powervc.capture_vm:
+            cloud: "CLOUDNAME"
             name: "NAME"
             image_name: "IMAGE_NAME"
             validate_certs: no
