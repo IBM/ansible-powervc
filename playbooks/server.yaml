@@ -10,9 +10,33 @@
       password: PASSWORD
       project_domain_name: PROJECT_DOMAIN_NAME
       user_domain_name: USER_DOMAIN_NAME
+    tasks:
       - name: Create a new instance and attaches to a network
         ibm.powervc.server:
           auth: "{{ auth }}"
+          name: "NAME"
+          image: "IMAGE"
+          timeout: 200
+          max_count: 1
+          collocation_rule_name: "COLLOCATION_RULE_NAME"
+          nics:
+            - network_name: "NETWORK_NAME"
+              fixed_ip: "FIXED_IP"
+          validate_certs: false
+          flavor: "FLAVOR"
+          state: present
+        register: result
+      - name: Disply server info
+        debug: var=result
+
+---
+  - name: PowerVC Create VM Playbook
+    hosts: localhost
+    gather_facts: no
+    tasks:
+      - name: Create a new instance and attaches to a network
+        ibm.powervc.server:
+          cloud: mycloud
           name: "NAME"
           image: "IMAGE"
           timeout: 200
