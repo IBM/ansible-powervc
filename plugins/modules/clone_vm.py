@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'requirements': ['python >= 3.9','ansible >= openstack.cloud'],
+                    'requirements': ['python >= 3.6','ansible >= openstack.cloud'],
                     'status': ['testing'],
                     'supported_by': 'PowerVC'}
 
@@ -82,10 +82,28 @@ EXAMPLES = '''
        - debug:
             var: result
 
+  - name: VM Clone Playbook with Network and providing a fixed_ip
+    hosts: localhost
+    gather_facts: no
+    tasks:
+       - name:  Perform VM Clone Operation on VM with network and IP details
+         ibm.powervc.clone_vm:
+            cloud: "CLOUD_NAME"
+            vm_name: "VM_NAME"
+            clonevm_name: "CLONEVM_NAME"
+            nics:
+                - net-name: "NET-NAME"
+                  fixed_ip: "FIXED_IP"
+            validate_certs: no
+         register: result
+       - debug:
+            var: result
+
+
 '''
 
 from ansible_collections.openstack.cloud.plugins.module_utils.openstack import OpenStackModule
-from ansible_collections.powervc.cloud.plugins.module_utils.crud_clone_vm import clone_vm_ops 
+from ansible_collections.ibm.powervc.plugins.module_utils.crud_clone_vm import clone_vm_ops 
 import copy
 
 class CloneVMModule(OpenStackModule):

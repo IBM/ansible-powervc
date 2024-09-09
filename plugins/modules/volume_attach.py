@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'requirements': ['python >= 3.9','ansible >= openstack.cloud'],
+                    'requirements': ['python >= 3.6','ansible >= openstack.cloud'],
                     'status': ['testing'],
                     'supported_by': 'PowerVC'}
 
@@ -53,10 +53,24 @@ EXAMPLES = '''
        - debug:
             var: result
 
+  - name: VM Volume Attach Playbook
+    hosts: localhost
+    gather_facts: no
+    tasks:
+       - name: Perform VM Volume Attach Operations
+         ibm.powervc.volume_attach:
+            cloud: "CLOUD_NAME"
+            name: "NAME"
+            volume_name: ["VOL_NAME1","VOL_NAME2","VOL_NAME3"]
+            validate_certs: no
+         register: result
+       - debug:
+            var: result
+
 '''
 
 from ansible_collections.openstack.cloud.plugins.module_utils.openstack import OpenStackModule
-from ansible_collections.powervc.cloud.plugins.module_utils.crud_volume_attach import volume_ops
+from ansible_collections.ibm.powervc.plugins.module_utils.crud_volume_attach import volume_ops
 
 class VolumeAttachVMModule(OpenStackModule):
     argument_spec = dict(

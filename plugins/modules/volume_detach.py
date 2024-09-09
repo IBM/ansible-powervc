@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'requirements': ['python >= 3.9','ansible >= openstack.cloud'],
+                    'requirements': ['python >= 3.6','ansible >= openstack.cloud'],
                     'status': ['testing'],
                     'supported_by': 'PowerVC'}
 
@@ -49,11 +49,25 @@ EXAMPLES = '''
        - debug:
             var: result
 
+  - name: VM Volume Detach Playbook
+    hosts: localhost
+    gather_facts: no
+    tasks:
+       - name: Perform VM Volume Attach Operations
+         ibm.powervc.volume_detach:
+            cloud: "CLOUD_NAME"
+            name: "NAME"
+            volume_name: ["VOLUME_NAME1","VOLUME_NAME2","VOLUME_NAME3"]
+            validate_certs: no
+         register: result
+       - debug:
+            var: result
+
 '''
 
 
 from ansible_collections.openstack.cloud.plugins.module_utils.openstack import OpenStackModule
-from ansible_collections.powervc.cloud.plugins.module_utils.crud_volume_detach import volume_ops
+from ansible_collections.ibm.powervc.plugins.module_utils.crud_volume_detach import volume_ops
 
 class VolumeDetachVMModule(OpenStackModule):
     argument_spec = dict(
