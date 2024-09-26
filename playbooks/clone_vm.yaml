@@ -21,3 +21,19 @@
          register: result
        - debug:
             var: result
+
+- name: VM Clone Playbook with Network
+    hosts: localhost
+    gather_facts: no
+    tasks:
+       - name:  Perform VM Clone Operation on VM with network
+         ibm.powervc.clone_vm:
+            cloud: "CLOUD_NAME"
+            vm_name: "VM_NAME"
+            clonevm_name: "CLONEVM_NAME"
+            nics:
+                - net-name: "NET-NAME"
+            validate_certs: no
+         register: result
+       - debug:
+            var: result

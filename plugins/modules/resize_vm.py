@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'requirements': ['python >= 3.9','ansible >= openstack.cloud'],
+                    'requirements': ['python >= 3.6','ansible >= openstack.cloud'],
                     'status': ['testing'],
                     'supported_by': 'PowerVC'}
 
@@ -50,7 +50,7 @@ EXAMPLES = '''
 '''
 
 from ansible_collections.openstack.cloud.plugins.module_utils.openstack import OpenStackModule
-from ansible_collections.powervc.cloud.plugins.module_utils.crud_resize import resize_ops
+from ansible_collections.ibm.powervc.plugins.module_utils.crud_resize import resize_ops
 
 class ResizeVMModule(OpenStackModule):
     argument_spec = dict(

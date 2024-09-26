@@ -5,8 +5,8 @@ The **IBM PowerVC collection** provides modules that can be used to manage confi
 deployments of resources over PowerVC. The collection content helps to include workloads on
 PowerVC platform as part of an enterprise automation strategy through the Ansible ecosystem.
 
-Ansible Content for IBM Power Systems
-=====================================
+Ansible Content for IBM PowerVC
+===============================
 
 IBM PowerVC provides simplified virtualization management and cloud deployments for IBM AIX®, 
 IBM i and Linux virtual machines (VMs) running on IBM® Power®. The offering is designed to 
@@ -17,16 +17,6 @@ It is built on OpenStack.
 IBM PowerVC collection, as part of the broader offering of
 **Ansible Content for IBM PowerVC**, is available from Ansible Galaxy and has
 community support.
-
-Getting Started Articles
-========================
-Check out the reference materials below if you are new to Ansible for IBM Power.
-
-https://ibm.biz/ansible-aix
-
-https://ibm.biz/ansible-for-power
-
-https://ibm.biz/ansible-power-trailer
 
 Features
 ========
@@ -56,7 +46,7 @@ Licensed under
 Author Information
 ==================
 
-This Ansible collection is maintained by the IBM Power VIOS development team.
+This Ansible collection is maintained by the IBM PowerVC development team.
 
 .. toctree::
    :maxdepth: 2
