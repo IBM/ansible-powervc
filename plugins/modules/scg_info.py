@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'requirements': ['python >= 3.9','ansible >= openstack.cloud'],
+                    'requirements': ['python >= 3.6','ansible >= openstack.cloud'],
                     'status': ['testing'],
                     'supported_by': 'PowerVC'}
 
@@ -44,6 +44,16 @@ EXAMPLES = '''
        - debug:
             var: result
 
+  - name: List all the SCG Details Playbook
+    hosts: all
+    gather_facts: no
+    tasks:
+       - name: Get All the SCG Details
+         ibm.powervc.scg_info:
+            cloud: "CLOUD_NAME"
+         register: result
+       - debug:
+            var: result
 
   - name: List a Specific SCG Details Playbook
     hosts: all
@@ -68,7 +78,7 @@ EXAMPLES = '''
 
 
 from ansible_collections.openstack.cloud.plugins.module_utils.openstack import OpenStackModule
-from ansible_collections.powervc.cloud.plugins.module_utils.crud_scg_info import scg_ops
+from ansible_collections.ibm.powervc.plugins.module_utils.crud_scg_info import scg_ops
 
 class SCGInfoModule(OpenStackModule):
     argument_spec = dict(

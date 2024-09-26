@@ -21,3 +21,19 @@
          register: result
        - debug:
             var: result
+
+  - name: Storage Connectivity Group Operations from PowerVC Server
+    hosts: all
+    gather_facts: no
+    tasks:
+       - name: Performing the Create SCG Operation
+         ibm.powervc.scg_operations:
+            cloud: "{{ CLOUD_NAME }}"
+            state: "present"
+            display_name: <DISPLAY_NAME>
+            vios_ids: <VIOS_ID>
+            boot_connectivity: <BOOT_CONNECTIVITY_VAL>
+            data_connectivity: <DATA_CONNECTIVITY_VAL>
+         register: result
+       - debug:
+            var: result

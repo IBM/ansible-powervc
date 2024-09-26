@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'requirements': ['python >= 3.9','ansible >= openstack.cloud'],
+                    'requirements': ['python >= 3.6','ansible >= openstack.cloud'],
                     'status': ['testing'],
                     'supported_by': 'PowerVC'}
 
@@ -35,8 +35,22 @@ EXAMPLES = '''
       user_domain_name: USER_DOMAIN_NAME
     tasks:
        - name: Perform VM Capture Operations
-         powervc.cloud.capture_vm:
+         ibm.powervc.capture_vm:
             auth: "{{ auth }}"
+            name: "NAME"
+            image_name: "IMAGE_NAME"
+            validate_certs: no
+         register: result
+       - debug:
+            var: result
+
+  - name: VM Capture Playbook
+    hosts: localhost
+    gather_facts: no
+    tasks:
+       - name: Perform VM Capture Operations
+         ibm.powervc.capture_vm:
+            cloud: "CLOUDNAME"
             name: "NAME"
             image_name: "IMAGE_NAME"
             validate_certs: no
@@ -48,7 +62,7 @@ EXAMPLES = '''
 
 
 from ansible_collections.openstack.cloud.plugins.module_utils.openstack import OpenStackModule
-from ansible_collections.powervc.cloud.plugins.module_utils.crud_capture_vm import capture_ops
+from ansible_collections.ibm.powervc.plugins.module_utils.crud_capture_vm import capture_ops
 
 class CaptureVMModule(OpenStackModule):
     argument_spec = dict(
