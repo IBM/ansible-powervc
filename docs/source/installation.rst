@@ -100,7 +100,7 @@ The ansible-galaxy command ignores any pre-release versions unless
 the ``==`` range identifier is set to that pre-release version.
 A pre-release version is denoted by appending a hyphen and a series of
 dot separated identifiers immediately following the patch version. The
-**IBM Power Systems HMC collection** releases collections with the pre-release
+**IBM PowerVC collection** releases collections with the pre-release
 naming convention such as **1.0.0-beta1** that would require a range identifier.
 
 Here is an example of installing a pre-release collection:
@@ -133,7 +133,7 @@ installed in ``~/.ansible/collections``; see the sample output.
 
    Process install dependency map
    Starting collection install process
-   Installing 'ibm.power_hmc:1.0.0' to '/Users/user/.ansible/collections/ansible_collections/ibm/powervc'
+   Installing 'ibm.powervc:1.0.0' to '/Users/user/.ansible/collections/ansible_collections/ibm/powervc'
 
 After installation, the collection content will resemble this hierarchy: :
 
@@ -173,10 +173,10 @@ Local build
 
 You can use the ``ansible-galaxy collection install`` command to install a
 collection built from source. Version builds are available in the ``builds``
-directory of the IBM ansible-power-hmc Git repository. The archives can be
+directory of the IBM ansible-powervc Git repository. The archives can be
 installed locally without having to Galaxy.
 
-To install a build from the ansible-power-hmc Git repository:
+To install a build from the ansible-powervc Git repository:
 
    1. Obtain a local copy from the Git repository:
 
