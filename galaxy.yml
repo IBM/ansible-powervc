@@ -1,0 +1,53 @@
+# Copyright (c) IBM Corporation 2020
+
+# IBM collection namespace
+namespace: ibm
+
+# Ansible collection for Power HMC
+name: powervc
+
+# The version of the collection. Must be compatible with semantic versioning
+version: 1.10.0
+
+
+# The path to the Markdown (.md) readme file. This path is relative to the root of the collection
+readme: README.md
+
+# A list of the collection's content authors. Can be just the name or in the format 'Full Name <email> (url)
+# @nicks:irc/im.site#channel'
+authors:
+- 
+
+### OPTIONAL but strongly recommended
+
+# A short summary description of the collection
+description: Ansible Content for IBM PowerVC - to manage configurations and deployments of resources over PowerVC.
+
+# Collection License
+license:
+- GPL-3.0-only
+
+# Collection Tags
+tags: [infrastructure, ibm, powervc]
+
+dependencies: {}
+
+# The URL of the originating SCM repository
+repository: https://github.com/IBM/ansible-powervc
+
+# The URL to any online docs
+documentation: https://ibm.github.io/ansible-powervc/index.html
+
+# The URL to the homepage of the collection/project
+homepage: https://github.com/IBM
+
+# The URL to the collection issue tracker
+issues: https://github.com/IBM/ansible-powervc/issues
+
+# Files to ignore when building powervc collection
+build_ignore:
+- builds
+- devops
+- docs/images
+- docs/source/demo.rst
+- '*.tar.gz'
