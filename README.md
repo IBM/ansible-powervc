@@ -97,6 +97,6 @@ Authors:
 - 
 
 [coc]: https://help.github.com/en/github/building-a-strong-community/adding-a-code-of-conduct-to-your-project
-[issues]: https://github.com/IBM/ansible-power-hmc/issues/new
-[pages]: https://ibm.github.io/ansible-power-hmc/
+[issues]: https://github.com/IBM/ansible-powervc/issues/new
+[pages]: https://ibm.github.io/ansible-powervc/
 [Installing Ansible]: https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html
