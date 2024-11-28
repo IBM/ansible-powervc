@@ -3,7 +3,7 @@
 # IBM collection namespace
 namespace: ibm
 
-# Ansible collection for Power HMC
+# Ansible collection for PowerVC
 name: powervc
 
 # The version of the collection. Must be compatible with semantic versioning
