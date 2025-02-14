@@ -9,8 +9,8 @@
 
 The **IBM PowerVC collection** provides modules that can be used to manage configurations
 of Power systems managed by the **Power VC**.
-The collection content helps to include Hardware Management Console as part of enterprise automation
-strategy through the Ansible ecosystem.
+The collection is built using the inputs from the openstack.cloud Ansible collection modules.
+The collection content helps in performing the automation strategy through the Ansible ecosystem.
 The IBM Power VC collection is included as an upstream collection under the Ansible
 Content for IBM Power Systems umbrella of community content.
 This will help 3rd party integrators and enterprises using their own automation for
@@ -51,7 +51,7 @@ This repository contains some example best practices for open source repositorie
 ### Python
 
 - Requires Python 3.8 or higher
-- lxml
+- openstacksdk
 ## Resources
 
 Documentation of modules is generated on [GitHub Pages][pages].
