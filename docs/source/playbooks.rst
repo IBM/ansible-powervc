@@ -70,18 +70,18 @@ should be included when running the sample playbook.
 
 .. code-block:: yaml
 
-   vcserver:
+   powervcserver:
      hosts:
-       vio:
-         ansible_host: vc_target_address
-         ansible_user: vc_target_username
-         ansible_python_interpreter: path_to_python_interpreter_binary_on_vios_target
+       powervc:
+         ansible_host: target_address
+         ansible_user: target_username
+         ansible_python_interpreter: path_to_python_interpreter_binary_on_target
 
 
 The value for the property **ansible_host** is the hostname of the managed node;
 for example, ``ansible_host: regency.aus.stglabs.ibm.com``
 
-The value for the property **vc_target_username** is the user name to use when
+The value for the property **target_username** is the user name to use when
 connecting to the host; for example, ``ansible_user: padmin``.
 
 The value for the property **ansible_python_interpreter** is the target host
