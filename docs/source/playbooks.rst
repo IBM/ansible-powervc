@@ -15,7 +15,7 @@ An `Ansible playbook`_ consists of organized instructions that define work for
 a managed node (host) to be managed with Ansible.
 
 A `playbooks directory`_ that contains a sample playbook is included in the
-**IBM Power Systems HMC collection**. The sample playbook can be run with the
+**IBM PowerVC collection**. The sample playbook can be run with the
 ``ansible-playbook`` command with some modification to the **inventory**.
 
 You can find the playbook content that is included with the collection in the
