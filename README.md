@@ -10,6 +10,7 @@
 The **IBM PowerVC collection** provides modules that can be used to manage configurations
 of Power systems managed by the **Power VC**.
 The collection is built using the inputs from the openstack.cloud Ansible collection modules.
+
 The collection content helps in performing the automation strategy through the Ansible ecosystem.
 The IBM Power VC collection is included as an upstream collection under the Ansible
 Content for IBM Power Systems umbrella of community content.
