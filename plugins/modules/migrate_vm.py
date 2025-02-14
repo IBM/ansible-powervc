@@ -54,13 +54,13 @@ EXAMPLES = '''
     tasks:
        - name: Perform VM Migrate Operations
          ibm.powervc.migate_vm:
-            cloud: "CLOUD_NAME"
-            name: "NAME"
-	    host: "HOST"
-            validate_certs: no
-         register: result
-       - debug:
-            var: result
+		cloud: "CLOUD_NAME"
+		name: "NAME"
+		host: "HOST"
+		validate_certs: no
+	register: result
+	- debug:
+		var: result
 
 '''
 
