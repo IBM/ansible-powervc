@@ -18,15 +18,10 @@ Control node
 ------------
 
 * `Ansible version`_: 2.14.0 or later
-* `Python`_: 3
+* `Python`_: 3.8
 
 .. _Ansible version:
    https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html
 .. _Python:
    https://www.python.org/downloads/release/latest
 
-
-Managed node
-------------
-
-* `PowerVC level`_: V__ or V__ or later
