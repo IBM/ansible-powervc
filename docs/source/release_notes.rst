@@ -8,3 +8,4 @@ Releases
 Version 1.0.0
 -------------
 Notes
+  * PowerVC modules for the Server related actions and operations.
