@@ -71,4 +71,3 @@ Connection Method
 
 Ansible communicates with remote machines over the SSH protocol. By default, Ansible uses native OpenSSH and connects to remote machines and communicates from the control node via SSH tunnel.
 
-In case of HMC collection, since HMC is a closed appliance solution, its restricted shell will not allow push-based execution model of Ansible. Hence , current ansible collection for HMC would work with local connection type using the connection plugin, executing commands via SSH without pushing the code to the managed HMC. 
