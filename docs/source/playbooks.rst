@@ -27,7 +27,7 @@ refer to the installation path as ``~/.ansible/collections/ansible_collections/i
 .. _Ansible playbook:
    https://docs.ansible.com/ansible/latest/user_guide/playbooks_intro.html#playbooks-intro
 .. _playbooks directory:
-   https://github.com/IBM/ansible-powervc/tree/dev-collection/playbooks
+   https://github.com/IBM/ansible-powervc/tree/main/playbooks
 .. _installation documentation:
    installation.html
 
