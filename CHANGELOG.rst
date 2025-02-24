@@ -19,6 +19,6 @@ Availability
    https://galaxy.ansible.com/download/ibm-powervc-1.0.0.tar.gz
 
 .. _GitHub v1.0.0:
-   https://github.com/IBM/ansible-power-hmc/releases/download/v1.0.0/ibm-powervc-1.0.0.tar.gz
+   https://github.com/IBM/ansible-powervc/releases/download/v1.0.0/ibm-powervc-1.0.0.tar.gz
 
 
