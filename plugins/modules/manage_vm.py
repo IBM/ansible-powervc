@@ -14,14 +14,19 @@ short_description: Performs the Manage operations on the Virtual Machine.
 description:
   - This playbook helps in performing the Manage operations on the VM provided.
 options:
+  name:
+    description:
+      - Name of the VM
+    type: str
   id:
     description:
       - ID of the VM
-    type: str
+    type: str    
   host:
     description:
       - Host of the VM
     type: str
+
 '''
 
 EXAMPLES = '''
@@ -56,18 +61,25 @@ from ansible_collections.ibm.powervc.plugins.module_utils.crud_manage import man
 
 class ManageVMModule(OpenStackModule):
     argument_spec = dict(
-        id=dict(required=True),
+        name=dict(),
+        id=dict(),
         host=dict(required=True),
     )
     module_kwargs = dict(
-        supports_check_mode=True
+        supports_check_mode=True,
+        mutually_exclusive=[
+            ['name', 'id'],
+        ]
     )
 
     def run(self):
         authtoken = self.conn.auth_token
         tenant_id = self.conn.session.get_project_id()
+        vm_name = self.params['name']
         vm_id = self.params['id']
         host = self.params['host']
+        if vm_name:
+            vm_id = self.conn.compute.find_server(vm_name, ignore_missing=False).id
         try:
             res = manage_ops(self, self.conn, authtoken, tenant_id, vm_id, host)
             self.exit_json(changed=True, result=res)

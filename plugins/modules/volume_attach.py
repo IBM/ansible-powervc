@@ -19,6 +19,10 @@ options:
       - Name of the VM
     required: true
     type: str
+  id:
+    description:
+      - ID of the VM
+    type: str    
   volume_name:
     description:
       - Name of the volumes want to be attached
@@ -76,21 +80,27 @@ from ansible_collections.ibm.powervc.plugins.module_utils.crud_volume_attach imp
 
 class VolumeAttachVMModule(OpenStackModule):
     argument_spec = dict(
-        name=dict(required=True),
+        name=dict(),
+        id=dict(),
         volume_name=dict(type='list'),
         volume_id=dict(type='list'),
     )
     module_kwargs = dict(
-        supports_check_mode=True
+        supports_check_mode=True,
+        mutually_exclusive=[
+            ['name', 'id'],
+        ]
     )
 
     def run(self):
         authtoken = self.conn.auth_token
         tenant_id = self.conn.session.get_project_id()
         vm_name = self.params['name']
+        vm_id = self.params['id']
         vol_name = self.params['volume_name']
         volume_id = self.params['volume_id']
-        vm_id = self.conn.compute.find_server(vm_name, ignore_missing=False).id
+        if vm_name:
+            vm_id = self.conn.compute.find_server(vm_name, ignore_missing=False).id
         if vol_name:
             vol_ids = []
             for name in vol_name:

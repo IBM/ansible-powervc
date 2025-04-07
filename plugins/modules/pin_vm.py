@@ -18,10 +18,15 @@ options:
     description:
       - Name of the Server
     type: str
+  id:
+    description:
+      - ID of the VM
+    type: str
   pin_type:
     description:
       - Pin Type - Allowed values are no_pin, soft_pin, hard_pin
     type: str
+
 '''
 
 EXAMPLES = '''
@@ -55,7 +60,8 @@ from ansible_collections.ibm.powervc.plugins.module_utils.crud_pin import pin_op
 
 class PinOpsModule(OpenStackModule):
     argument_spec = dict(
-        name=dict(required=True),
+        name=dict(),
+        id=dict(),
         pin_type=dict(required=True),
     )
     module_kwargs = dict(
@@ -65,11 +71,13 @@ class PinOpsModule(OpenStackModule):
     def run(self):
         authtoken = self.conn.auth_token
         vm_name = self.params['name']
+        vm_id = self.params['id']
         pin_type = self.params['pin_type']
         tenant_id = self.conn.session.get_project_id()
-        vm_id = self.conn.compute.find_server(vm_name, ignore_missing=False).id
+        if vm_name:
+            vm_id = self.conn.compute.find_server(vm_name, ignore_missing=False).id
         try:
-            res = pin_ops(self, self.conn, authtoken, tenant_id, vm_id, vm_name, pin_type)
+            res = pin_ops(self, self.conn, authtoken, tenant_id, vm_id, pin_type)
             self.exit_json(changed=False, result=res)
         except Exception as e:
             self.fail_json(msg=f"An unexpected error occurred: {str(e)}", changed=False)

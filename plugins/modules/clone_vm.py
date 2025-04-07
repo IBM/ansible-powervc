@@ -17,8 +17,11 @@ options:
   name:
     description:
       - Name of the VM
-    required: true
     type: str
+  id:
+    description:
+      - ID of the VM
+    type: str    
   clonevm_name:
     description:
       - Name of the Cloned VM
@@ -49,7 +52,7 @@ EXAMPLES = '''
        - name:  Perform VM Clone Operation on VM with network
          ibm.powervc.clone_vm:
             auth: "{{ auth }}"
-            vm_name: "VM_NAME"
+            name: "VM_NAME"
             clonevm_name: "CLONEVM_NAME"
             nics:
                 - net-name: "NET-NAME"
@@ -90,7 +93,7 @@ EXAMPLES = '''
        - name:  Perform VM Clone Operation on VM with network and IP details
          ibm.powervc.clone_vm:
             cloud: "CLOUD_NAME"
-            vm_name: "VM_NAME"
+            name: "VM_NAME"
             clonevm_name: "CLONEVM_NAME"
             nics:
                 - net-name: "NET-NAME"
@@ -109,13 +112,17 @@ import copy
 
 class CloneVMModule(OpenStackModule):
     argument_spec = dict(
-        vm_name=dict(required=True),
+        name=dict(),
+        id=dict(),
         clonevm_name=dict(required=True),
         network=dict(),
         nics=dict(default=[], type='list', elements='raw'),
     )
     module_kwargs = dict(
-        supports_check_mode=True
+        supports_check_mode=True,
+        mutually_exclusive=[
+            ['name', 'id'],
+        ]
     )
 
     def _parse_nics(self):
@@ -162,10 +169,12 @@ class CloneVMModule(OpenStackModule):
     def run(self):
         authtoken = self.conn.auth_token
         tenant_id = self.conn.session.get_project_id()
-        vm_name = self.params['vm_name']
+        vm_name = self.params['name']
+        vm_id = self.params['id']
         clonevm_name = self.params['clonevm_name']
         nics = self._parse_nics()
-        vm_id = self.conn.compute.find_server(vm_name, ignore_missing=False).id
+        if vm_name:
+            vm_id = self.conn.compute.find_server(vm_name, ignore_missing=False).id        
         try:
             data = {"clone-vm": {"server": {"name": clonevm_name, "networks": nics, "availability_zone": "Default Group"}}}
             res = clone_vm_ops(self, self.conn, authtoken, tenant_id, vm_id, data)

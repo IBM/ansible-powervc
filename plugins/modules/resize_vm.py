@@ -17,13 +17,17 @@ options:
   name:
     description:
       - Name of the VM
-    required: true
     type: str
+  id:
+    description:
+      - ID of the VM
+    type: str  
   template_type:
     description:
       - Name of the Compute Template
     required: true
     type: str
+
 '''
 
 EXAMPLES = '''
@@ -58,7 +62,8 @@ from ansible_collections.ibm.powervc.plugins.module_utils.crud_resize import res
 
 class ResizeVMModule(OpenStackModule):
     argument_spec = dict(
-        name=dict(required=True),
+        name=dict(),
+        id=dict(),
         template_type=dict(required=True),
     )
     module_kwargs = dict(
@@ -69,9 +74,11 @@ class ResizeVMModule(OpenStackModule):
         authtoken = self.conn.auth_token
         tenant_id = self.conn.session.get_project_id()
         vm_name = self.params['name']
+        vm_id = self.params['id']        
         template_type = self.params['template_type']
-        vm_id = self.conn.compute.find_server(vm_name, ignore_missing=False).id
         template_id = self.conn.compute.find_flavor(template_type, ignore_missing=False).id
+        if vm_name:
+            vm_id = self.conn.compute.find_server(vm_name, ignore_missing=False).id        
         try:
             res = resize_ops(self, self.conn, authtoken, tenant_id, vm_id, template_id, vm_name)
             self.exit_json(changed=True, result=res)

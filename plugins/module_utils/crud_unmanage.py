@@ -31,7 +31,7 @@ def get_endpoint_url_by_service_name(mod, connectn, service_name, tenant_id):
         mod.fail_json(msg=f"No service found with the name '{service_name}'", changed=False)
 
 
-def unmanage_vm(mod, endpoint, vmurl, authtoken, vm_name, post_data):
+def unmanage_vm(mod, endpoint, vmurl, authtoken, post_data):
     """
     Performs UnManage operations on the VM provided
     """
@@ -41,17 +41,17 @@ def unmanage_vm(mod, endpoint, vmurl, authtoken, vm_name, post_data):
     unmanage_url = f"{endpoint}/os-hosts/{host_value}/unmanage"
     responce = requests.post(unmanage_url, headers=headers_scg, json=post_data, verify=False)
     if responce.ok:
-        return f"VM '{vm_name}' Unmanage action is done"
+        return f"VM Unmanage action is done"
     else:
         mod.fail_json(
             msg=f"An unexpected error occurred: {responce.json()}", changed=False
         )
 
 
-def unmanage_ops(mod, connectn, authtoken, tenant_id, vm_id, vm_name):
+def unmanage_ops(mod, connectn, authtoken, tenant_id, vm_id):
     service_name = "compute"
     endpoint = get_endpoint_url_by_service_name(mod, connectn, service_name, tenant_id)
     unmanage_data = {"servers": [vm_id]}
     url = f"{endpoint}/servers/{vm_id}"
-    result = unmanage_vm(mod, endpoint, url, authtoken, vm_name, unmanage_data)
+    result = unmanage_vm(mod, endpoint, url, authtoken, unmanage_data)
     return result
