@@ -21,7 +21,7 @@ options:
   id:
     description:
       - ID of the VM
-    type: str  
+    type: str
   template_type:
     description:
       - Name of the Compute Template
@@ -74,11 +74,11 @@ class ResizeVMModule(OpenStackModule):
         authtoken = self.conn.auth_token
         tenant_id = self.conn.session.get_project_id()
         vm_name = self.params['name']
-        vm_id = self.params['id']        
+        vm_id = self.params['id']
         template_type = self.params['template_type']
         template_id = self.conn.compute.find_flavor(template_type, ignore_missing=False).id
         if vm_name:
-            vm_id = self.conn.compute.find_server(vm_name, ignore_missing=False).id        
+            vm_id = self.conn.compute.find_server(vm_name, ignore_missing=False).id
         try:
             res = resize_ops(self, self.conn, authtoken, tenant_id, vm_id, template_id, vm_name)
             self.exit_json(changed=True, result=res)

@@ -22,7 +22,7 @@ options:
   id:
     description:
       - ID of the VM
-    type: str    
+    type: str
   volume_name:
     description:
       - Name of the volumes want to be detached
@@ -92,7 +92,7 @@ class VolumeDetachVMModule(OpenStackModule):
         authtoken = self.conn.auth_token
         tenant_id = self.conn.session.get_project_id()
         vm_name = self.params['name']
-        vm_id = self.params['id']        
+        vm_id = self.params['id']
         vol_name = self.params['volume_name']
         vol_id = self.params['volume_id']
         if vm_name:

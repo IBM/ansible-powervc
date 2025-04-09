@@ -21,7 +21,7 @@ options:
   id:
     description:
       - ID of the VM
-    type: str    
+    type: str
   clonevm_name:
     description:
       - Name of the Cloned VM
@@ -174,7 +174,7 @@ class CloneVMModule(OpenStackModule):
         clonevm_name = self.params['clonevm_name']
         nics = self._parse_nics()
         if vm_name:
-            vm_id = self.conn.compute.find_server(vm_name, ignore_missing=False).id        
+            vm_id = self.conn.compute.find_server(vm_name, ignore_missing=False).id
         try:
             data = {"clone-vm": {"server": {"name": clonevm_name, "networks": nics, "availability_zone": "Default Group"}}}
             res = clone_vm_ops(self, self.conn, authtoken, tenant_id, vm_id, data)

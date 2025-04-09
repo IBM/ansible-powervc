@@ -87,7 +87,7 @@ class UnmanageVMModule(OpenStackModule):
         vm_name = self.params['name']
         vm_id = self.params['id']
         if vm_name:
-            vm_id = self.conn.compute.find_server(vm_name, ignore_missing=False).id    
+            vm_id = self.conn.compute.find_server(vm_name, ignore_missing=False).id
         try:
             res = unmanage_ops(self, self.conn, authtoken, tenant_id, vm_id)
             self.exit_json(changed=True, result=res)

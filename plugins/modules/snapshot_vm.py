@@ -21,7 +21,7 @@ options:
   id:
     description:
       - ID of the VM
-    type: str    
+    type: str
   volume:
     description:
       - Name of the Volume type: All/Specific/Boot

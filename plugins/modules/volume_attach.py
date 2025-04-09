@@ -22,7 +22,7 @@ options:
   id:
     description:
       - ID of the VM
-    type: str    
+    type: str
   volume_name:
     description:
       - Name of the volumes want to be attached
