@@ -41,7 +41,7 @@ def unmanage_vm(mod, endpoint, vmurl, authtoken, post_data):
     unmanage_url = f"{endpoint}/os-hosts/{host_value}/unmanage"
     responce = requests.post(unmanage_url, headers=headers_scg, json=post_data, verify=False)
     if responce.ok:
-        return f"VM Unmanage action is done"
+        return "VM Unmanage action is done"
     else:
         mod.fail_json(
             msg=f"An unexpected error occurred: {responce.json()}", changed=False

@@ -42,7 +42,7 @@ def pin_vm(mod, endpoint, vmurl, authtoken, post_data):
     pin_url = f"{vmurl}/metadata"
     responce = requests.post(pin_url, headers=headers_scg, json=post_data, verify=False)
     if responce.ok:
-        return (f"VM Pin action is done", responce.json())
+        return ("VM Pin action is done", responce.json())
 
 
 def pin_ops(mod, connectn, authtoken, tenant_id, vm_id, pin_type):
