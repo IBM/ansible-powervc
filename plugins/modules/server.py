@@ -26,6 +26,10 @@ options:
     description:
       - Name of the image
     type: str
+  host:
+    description:
+      - ID of the host
+    type: str    
   collocation_rule_name:
     description:
       - Name of the collocation_rule_name
@@ -37,7 +41,7 @@ options:
   scg_id:
     description:
       - ID of the Storage Connectivity Group.
-    type: str    
+    type: str
   key_name:
     description:
       - The key pair name to be used when creating a instance.
@@ -95,6 +99,7 @@ EXAMPLES = '''
           auth: "{{ auth }}"
           name: "VM_NAME"
           image: "VM_IMAGE"
+          host: "HOST_ID"
           timeout: 200
           max_count: "COUNT"
           collocation_rule_name: "COLLOCATION_RULE_NAME"
@@ -120,6 +125,7 @@ EXAMPLES = '''
           cloud: "CLOUD_NAME"
           name: "VM_NAME"
           image: "VM_IMAGE"
+          host: "HOST_ID"
           timeout: 200
           max_count: "COUNT"
           collocation_rule_name: "COLLOCATION_RULE_NAME"
@@ -145,6 +151,7 @@ EXAMPLES = '''
           cloud: "CLOUD_NAME"
           name: "VM_NAME"
           image: "VM_IMAGE"
+          host: "HOST_ID"
           timeout: 200
           max_count: "COUNT"
           collocation_rule_name: "COLLOCATION_RULE_NAME"
@@ -196,7 +203,7 @@ import base64
 class ServerOpsModule(OpenStackModule):
     argument_spec = dict(
         name=dict(required=False),
-        vm_id=dict(required=False),
+        id=dict(required=False),
         volume_id=dict(default=[], type='list', elements='str'),
         volume_name=dict(default=[], type='list', elements='str'),
         flavor=dict(),
@@ -304,7 +311,7 @@ class ServerOpsModule(OpenStackModule):
         try:
             authtoken = self.conn.auth_token
             vm_name = self.params['name']
-            vmid = self.params['vm_id']
+            vmid = self.params['id']
             state = self.params['state']
             image = self.params['image']
             max_count = self.params['max_count']

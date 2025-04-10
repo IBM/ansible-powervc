@@ -31,7 +31,7 @@
 
 
 ---
-  - name: PowerVC Create VM Playbook
+  - name: PowerVC Create VM Playbook with host
     hosts: localhost
     gather_facts: no
       - name: Create a new instance and attaches to a network
@@ -39,6 +39,7 @@
           cloud: "CLOUD_NAME"
           name: "VM_NAME"
           image: "VM_IMAGE"
+          host: "HOST_ID"
           timeout: 200
           max_count: "COUNT"
           collocation_rule_name: "COLLOCATION_RULE_NAME"
@@ -52,6 +53,55 @@
           volume_name: ["VOLUME_1","VOLUME_2"]
           state: present
           validate_certs: false
+        register: result
+      - name: Disply server info
+        debug: var=result
+
+---
+  - name: PowerVC Create VM Playbook with Storage Connectivity Group
+    hosts: localhost
+    gather_facts: no
+      - name: Create a new instance and attaches to a network
+        ibm.powervc.server:
+          cloud: "CLOUD_NAME"
+          name: "VM_NAME"
+          image: "VM_IMAGE"
+          host: "HOST_ID"
+          timeout: 200
+          max_count: "COUNT"
+          collocation_rule_name: "COLLOCATION_RULE_NAME"
+          scg_id: "STORAGE_CONNECTIVITY_GROUP_ID"
+          nics:
+            - network_name: "NETWORK_NAME"
+              fixed_ip: "FIXED_IP" # "fixed_ip: 192.168.10.20"
+          image_volume_override:
+            - volume_id: "VOLUME_ID"
+              template_id: "TEMPLATE_ID"
+          flavor: "FLAVOR_NAME"
+          volume_name: ["VOLUME_1","VOLUME_2"]
+          state: present
+          validate_certs: false
+        register: result
+      - name: Disply server info
+        debug: var=result
+
+---
+  - name: PowerVC Delete VM Playbook
+    hosts: localhost
+    gather_facts: no
+    vars:
+     auth:
+      auth_url: https://<POWERVC>:5000/v3
+      project_name: PROJECT-NAME
+      username: USERID
+      password: PASSWORD
+      project_domain_name: PROJECT_DOMAIN_NAME
+      user_domain_name: USER_DOMAIN_NAME
+      - name: Delete the VM based on the input name provided
+        ibm.powervc.server:
+          auth: "{{ auth }}"
+          name: "VM_NAME"
+          state: absent
         register: result
       - name: Disply server info
         debug: var=result

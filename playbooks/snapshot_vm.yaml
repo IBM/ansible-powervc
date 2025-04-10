@@ -22,3 +22,16 @@
          register: result
        - debug:
             var: result
+
+  - name: Snapshot VM Playbook
+    hosts: localhost
+    gather_facts: no
+    tasks:
+       - name: Snapshot VM Operations
+         ibm.powervc.snapshot_vm:
+            cloud: "CLOUD_NAME"
+            name: "NAME"
+            validate_certs: no
+         register: result
+       - debug:
+            var: result

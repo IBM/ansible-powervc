@@ -19,3 +19,16 @@
          register: result
        - debug:
             var: result
+
+  - name: Pin VM Playbook
+    hosts: localhost
+    gather_facts: no
+    tasks:
+       - name: VM Pin Operations
+         ibm.powervc.pin_vm:
+            cloud: "CLOUD_NAME"
+            name: "NAME"
+            validate_certs: no
+         register: result
+       - debug:
+            var: result

@@ -29,7 +29,7 @@
          ibm.powervc.migate_vm:
             cloud: "CLOUD_NAME"
             name: "NAME"
-	    host: "HOST"
+            host: "HOST"
             validate_certs: no
          register: result
        - debug:
