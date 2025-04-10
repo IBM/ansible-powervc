@@ -68,7 +68,7 @@ def server_flavor(mod, connectn, authtoken, tenant_id, flavor_id, image_id, voli
         image_temp_id = "powervm:image_volume_type_" + volid
         flavor_specs['extra_specs'][image_temp_id] = template_id
     if scg_id:
-        flavor_specs['extra_specs']['powervm:storage_connectivity_group'] = scg_id    
+        flavor_specs['extra_specs']['powervm:storage_connectivity_group'] = scg_id
     flavor_data = {
         **flavor_details,
         **flavor_specs  # Merge flavor_details and Include flavor_data as "extra_specs"

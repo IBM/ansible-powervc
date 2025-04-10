@@ -34,6 +34,10 @@ options:
     description:
       - The maximum number of servers to create.
     type: str
+  scg_id:
+    description:
+      - ID of the Storage Connectivity Group.
+    type: str    
   key_name:
     description:
       - The key pair name to be used when creating a instance.
