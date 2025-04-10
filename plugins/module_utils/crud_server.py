@@ -45,7 +45,7 @@ def get_collocation_rules_id(mod, connectn, authtoken, tenant_id, collocation_ru
     return collocation_id
 
 
-def server_flavor(mod, connectn, authtoken, tenant_id, flavor_id, image_id, volid, template_id):
+def server_flavor(mod, connectn, authtoken, tenant_id, flavor_id, image_id, volid, template_id, scg_id):
     service_name = "compute"
     endpoint_compute = get_endpoint_url_by_service_name(mod, connectn, service_name, tenant_id)
     image_url = f"{endpoint_compute}/images/{image_id}"
@@ -67,6 +67,8 @@ def server_flavor(mod, connectn, authtoken, tenant_id, flavor_id, image_id, voli
     if volid:
         image_temp_id = "powervm:image_volume_type_" + volid
         flavor_specs['extra_specs'][image_temp_id] = template_id
+    if scg_id:
+        flavor_specs['extra_specs']['powervm:storage_connectivity_group'] = scg_id    
     flavor_data = {
         **flavor_details,
         **flavor_specs  # Merge flavor_details and Include flavor_data as "extra_specs"

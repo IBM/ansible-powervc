@@ -133,6 +133,32 @@ EXAMPLES = '''
       - name: Disply server info
         debug: var=result
 
+  - name: PowerVC Create VM Playbook with Storage Connectivity Group
+    hosts: localhost
+    gather_facts: no
+      - name: Create a new instance and attaches to a network
+        ibm.powervc.server:
+          cloud: "CLOUD_NAME"
+          name: "VM_NAME"
+          image: "VM_IMAGE"
+          timeout: 200
+          max_count: "COUNT"
+          collocation_rule_name: "COLLOCATION_RULE_NAME"
+          scg_id: "STORAGE_CONNECTIVITY_GROUP_ID"
+          nics:
+            - network_name: "NETWORK_NAME"
+              fixed_ip: "FIXED_IP" # "fixed_ip: 192.168.10.20"
+          image_volume_override:
+            - volume_id: "VOLUME_ID"
+              template_id: "TEMPLATE_ID"
+          flavor: "FLAVOR_NAME"
+          volume_name: ["VOLUME_1","VOLUME_2"]
+          state: present
+          validate_certs: false
+        register: result
+      - name: Disply server info
+        debug: var=result
+
   - name: PowerVC Delete VM Playbook
     hosts: localhost
     gather_facts: no
@@ -180,6 +206,7 @@ class ServerOpsModule(OpenStackModule):
         user_data=dict(),
         max_count=dict(type='int'),
         collocation_rule_name=dict(),
+        scg_id=dict(),
         security_groups=dict(default=[], type='list', elements='str'),
         state=dict(choices=['absent', 'present']),
     )
@@ -288,6 +315,7 @@ class ServerOpsModule(OpenStackModule):
             # meta = self.params['metadata']
             volume_name = self.params['volume_name']
             volume_id = self.params['volume_id']
+            scg_id = self.params['scg_id']
             user_data = self.params['user_data']
             tenant_id = self.conn.session.get_project_id()
             flavor_id = self.conn.compute.find_flavor(flavor, ignore_missing=False).id
@@ -324,7 +352,7 @@ class ServerOpsModule(OpenStackModule):
                 if image_vol_template:
                     volid = image_vol_template[0].get('volume_id', None)
                     template_id = image_vol_template[0].get('template_id', None)
-                flavor = server_flavor(self, self.conn, authtoken, tenant_id, flavor_id, imageRef, volid, template_id)
+                flavor = server_flavor(self, self.conn, authtoken, tenant_id, flavor_id, imageRef, volid, template_id, scg_id)
                 collocation_rule_id = get_collocation_rules_id(self, self.conn, authtoken, tenant_id, collocation_rule)
                 if availability_zone:
                     availability_zone = ":" + availability_zone
