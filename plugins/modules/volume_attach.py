@@ -13,6 +13,7 @@ author:
 short_description: Attach the Volume to the Virtual Machine.
 description:
   - This playbook helps in performing the Volume attach operations on the VM provided.
+  - Bulk Volume Attach API call is used for this operation.
 options:
   name:
     description:
