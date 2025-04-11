@@ -29,7 +29,7 @@ options:
   host:
     description:
       - ID of the host
-    type: str    
+    type: str
   collocation_rule_name:
     description:
       - Name of the collocation_rule_name
