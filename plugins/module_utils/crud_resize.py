@@ -36,7 +36,7 @@ def resize_vm(mod, resize_url, authtoken, post_data, vm_name):
     responce = requests.post(resize_url, headers=headers_scg, json=post_data, verify=False)
     if responce.ok:
         return (
-            f"VM '{vm_name}' Resize action is done",
+            "VM Resize action is done",
         )
     else:
         mod.fail_json(
