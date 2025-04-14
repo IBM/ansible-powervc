@@ -1,4 +1,3 @@
----
   - name: PowerVC Create VM Playbook
     hosts: localhost
     gather_facts: no
@@ -30,10 +29,10 @@
         debug: var=result
 
 
----
   - name: PowerVC Create VM Playbook with host
     hosts: localhost
     gather_facts: no
+    tasks:
       - name: Create a new instance and attaches to a network
         ibm.powervc.server:
           cloud: "CLOUD_NAME"
@@ -57,10 +56,10 @@
       - name: Disply server info
         debug: var=result
 
----
   - name: PowerVC Create VM Playbook with Storage Connectivity Group
     hosts: localhost
     gather_facts: no
+    tasks:
       - name: Create a new instance and attaches to a network
         ibm.powervc.server:
           cloud: "CLOUD_NAME"
@@ -85,7 +84,7 @@
       - name: Disply server info
         debug: var=result
 
----
+
   - name: PowerVC Delete VM Playbook
     hosts: localhost
     gather_facts: no
@@ -97,6 +96,7 @@
       password: PASSWORD
       project_domain_name: PROJECT_DOMAIN_NAME
       user_domain_name: USER_DOMAIN_NAME
+    tasks:
       - name: Delete the VM based on the input name provided
         ibm.powervc.server:
           auth: "{{ auth }}"

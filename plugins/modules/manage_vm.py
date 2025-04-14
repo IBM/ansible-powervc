@@ -24,13 +24,12 @@ options:
     type: str
   host:
     description:
-      - Host of the VM
+      - ID of the Host
     type: str
 
 '''
 
 EXAMPLES = '''
----
   - name: VM Manage Playbook
     hosts: localhost
     gather_facts: no
@@ -47,7 +46,7 @@ EXAMPLES = '''
          ibm.powervc.manage_vm:
             auth: "{{ auth }}"
             id: "VM_ID"
-            host: "HOST"
+            host: "HOST_ID"
             validate_certs: no
          register: result
        - debug:

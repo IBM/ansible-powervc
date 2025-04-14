@@ -1,5 +1,5 @@
   - name: Storage Connectivity Group Operations from PowerVC Server
-    hosts: all
+    hosts: localhost
     gather_facts: no
     vars:
      auth:
@@ -23,7 +23,7 @@
             var: result
 
   - name: Storage Connectivity Group Operations from PowerVC Server
-    hosts: all
+    hosts: localhost
     gather_facts: no
     tasks:
        - name: Performing the Create SCG Operation

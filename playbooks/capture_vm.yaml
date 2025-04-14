@@ -27,7 +27,7 @@
     tasks:
        - name: Perform VM Capture Operations
          ibm.powervc.capture_vm:
-            cloud: "CLOUDNAME"
+            cloud: "CLOUD_NAME"
             name: "NAME"
             image_name: "IMAGE_NAME"
             validate_certs: no

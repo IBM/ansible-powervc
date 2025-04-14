@@ -82,7 +82,6 @@ options:
 '''
 
 EXAMPLES = '''
----
   - name: PowerVC Create VM Playbook
     hosts: localhost
     gather_facts: no

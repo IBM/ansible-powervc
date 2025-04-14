@@ -25,7 +25,6 @@ options:
 '''
 
 EXAMPLES = '''
-
   - name: List all the SCG Details Playbook
     hosts: all
     gather_facts: no

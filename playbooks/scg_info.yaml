@@ -1,5 +1,5 @@
   - name: List all the SCG Details Playbook
-    hosts: all
+    hosts: localhost
     gather_facts: no
     vars:
      auth:
@@ -16,9 +16,8 @@
          register: result
        - debug:
             var: result
-
   - name: List all the SCG Details Playbook
-    hosts: all
+    hosts: localhost
     gather_facts: no
     tasks:
        - name: Get All the SCG Details

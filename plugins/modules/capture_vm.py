@@ -31,7 +31,6 @@ options:
 '''
 
 EXAMPLES = '''
----
   - name: VM Capture Playbook
     hosts: localhost
     gather_facts: no

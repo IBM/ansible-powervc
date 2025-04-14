@@ -35,7 +35,6 @@ options:
 '''
 
 EXAMPLES = '''
----
   - name: VM Volume Attach Playbook
     hosts: localhost
     gather_facts: no

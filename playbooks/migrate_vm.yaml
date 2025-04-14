@@ -1,4 +1,3 @@
----
   - name: VM Migrate Playbook
     hosts: localhost
     gather_facts: no
@@ -15,7 +14,7 @@
          ibm.powervc.migate_vm:
             auth: "{{ AUTH }}"
             name: "NAME"
-	    host: "HOST"
+	        host: "HOST_ID"
             validate_certs: no
          register: result
        - debug:
@@ -29,7 +28,7 @@
          ibm.powervc.migate_vm:
             cloud: "CLOUD_NAME"
             name: "NAME"
-            host: "HOST"
+            host: "HOST_ID"
             validate_certs: no
          register: result
        - debug:

@@ -30,7 +30,6 @@ options:
 '''
 
 EXAMPLES = '''
----
   - name: VM Migrate Playbook
     hosts: localhost
     gather_facts: no
@@ -47,7 +46,7 @@ EXAMPLES = '''
          ibm.powervc.migate_vm:
             auth: "{{ auth }}"
             name: "NAME"
-            host: "HOST"
+            host: "HOST_ID"
             validate_certs: no
          register: result
        - debug:
@@ -61,7 +60,7 @@ EXAMPLES = '''
          ibm.powervc.migate_vm:
             cloud: "CLOUD_NAME"
             name: "NAME"
-            host: "HOST"
+            host: "HOST_ID"
             validate_certs: no
          register: result
        - debug:

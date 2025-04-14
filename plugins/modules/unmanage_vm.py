@@ -27,7 +27,6 @@ options:
 '''
 
 EXAMPLES = '''
----
   - name: VM Unmanage Playbook
     hosts: localhost
     gather_facts: no

@@ -36,7 +36,6 @@ options:
 '''
 
 EXAMPLES = '''
-
 - name: VM Clone Playbook with Network
     hosts: localhost
     gather_facts: no

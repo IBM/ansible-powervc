@@ -31,7 +31,6 @@ options:
 '''
 
 EXAMPLES = '''
----
   - name: VM Volume Detach Playbook
     hosts: localhost
     gather_facts: no
