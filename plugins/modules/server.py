@@ -139,7 +139,7 @@ EXAMPLES = '''
           state: present
           validate_certs: false
         register: result
-      - name: Disply server info
+      - name: Display server info
         debug: var=result
 
   - name: PowerVC Create VM Playbook with Storage Connectivity Group

@@ -70,6 +70,20 @@ EXAMPLES = '''
          register: result
        - debug:
             var: result
+
+  - name: VM Volume Attach Playbook using the Volume IDs
+    hosts: localhost
+    gather_facts: no
+    tasks:
+       - name: Perform VM Volume Attach Operations
+         ibm.powervc.volume_attach:
+            cloud: "CLOUD_NAME"
+            name: "NAME"
+            volume_id: ["VOL_ID1","VOL_ID2","VOL_ID3"]
+            validate_certs: no
+         register: result
+       - debug:
+            var: result
 '''
 
 
@@ -87,7 +101,7 @@ class VolumeAttachVMModule(OpenStackModule):
     module_kwargs = dict(
         supports_check_mode=True,
         mutually_exclusive=[
-            ['name', 'id'],
+            ['name', 'id'], ['volume_name', 'volume_id']
         ]
     )
 

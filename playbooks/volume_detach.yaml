@@ -33,3 +33,17 @@
          register: result
        - debug:
             var: result
+
+  - name: VM Volume Detach Playbook using the Volume IDs
+    hosts: localhost
+    gather_facts: no
+    tasks:
+       - name: Perform VM Volume Attach Operations
+         ibm.powervc.volume_detach:
+            cloud: "CLOUD_NAME"
+            name: "NAME"
+            volume_name: ["VOLUME_ID1","VOLUME_ID2","VOLUME_ID3"]
+            validate_certs: no
+         register: result
+       - debug:
+            var: result

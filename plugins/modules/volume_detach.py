@@ -27,6 +27,10 @@ options:
     description:
       - Name of the volumes want to be detached
     type: list
+  volume_id:
+    description:
+      - IDs of the volumes want to be detached
+    type: list
 
 '''
 
@@ -66,6 +70,20 @@ EXAMPLES = '''
          register: result
        - debug:
             var: result
+
+  - name: VM Volume Detach Playbook using the Volume IDs
+    hosts: localhost
+    gather_facts: no
+    tasks:
+       - name: Perform VM Volume Attach Operations
+         ibm.powervc.volume_detach:
+            cloud: "CLOUD_NAME"
+            name: "NAME"
+            volume_name: ["VOLUME_ID1","VOLUME_ID2","VOLUME_ID3"]
+            validate_certs: no
+         register: result
+       - debug:
+            var: result
 '''
 
 
@@ -83,7 +101,7 @@ class VolumeDetachVMModule(OpenStackModule):
     module_kwargs = dict(
         supports_check_mode=True,
         mutually_exclusive=[
-            ['name', 'id'],
+            ['name', 'id'], ['volume_name', 'volume_id']
         ]
     )
 

@@ -25,7 +25,7 @@
           flavor: "FLAVOR"
           state: present
         register: result
-      - name: Disply server info
+      - name: Display server info
         debug: var=result
 
 
