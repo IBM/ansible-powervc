@@ -30,7 +30,7 @@ options:
   enable_sharing_vm:
     description:
       - Enable sharing between the VMs of the Volume
-    type: str    
+    type: bool
 
 '''
 
@@ -93,7 +93,7 @@ class VolumeUpdateModule(OpenStackModule):
         name=dict(),
         id=dict(),
         size=dict(type='int'),
-        enable_sharing_vm=dict(),
+        enable_sharing_vm=dict(type='bool'),
     )
     module_kwargs = dict(
         supports_check_mode=True,
