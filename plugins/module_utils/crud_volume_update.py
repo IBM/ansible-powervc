@@ -52,7 +52,6 @@ def put_volume(headers_vm, vm_url, enable_sharing_vm):
     if responce.ok:
         return responce.json()
 
-
 def volume_ops(mod, connectn, authtoken, tenant_id, vol_id, size, enable_sharing_vm):
     service_name = "volume"
     endpoint = get_endpoint_url_by_service_name(mod, connectn, service_name, tenant_id)
