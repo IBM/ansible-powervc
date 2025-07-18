@@ -34,7 +34,7 @@ def post_volume(headers_vm, vm_url, size):
     """
     Performs Post Volume operation
     """
-    data = {"ibm-extend":{"new_size":size}}
+    data = {"ibm-extend": {"new_size": size}}
     responce = requests.post(vm_url, headers=headers_vm, json=data, verify=False)
     if responce.ok:
         return (f"Volume Data Size changes to {size}")
@@ -45,9 +45,9 @@ def put_volume(headers_vm, vm_url, enable_sharing_vm):
     Performs Update Volume operation
     """
     if enable_sharing_vm:
-        data = {"volume":{"multiattach":True}}
+        data = {"volume": {"multiattach": True}}
     else:
-        data = {"volume":{"multiattach":False}}
+        data = {"volume": {"multiattach": False}}
     responce = requests.put(vm_url, headers=headers_vm, json=data, verify=False)
     if responce.ok:
        return responce.json()
