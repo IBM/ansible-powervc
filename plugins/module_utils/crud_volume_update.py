@@ -5,7 +5,6 @@ This module performs the PowerVC Volume Update operations
 """
 
 import requests
-import json
 
 
 def get_headers(authtoken):
@@ -52,7 +51,6 @@ def put_volume(headers_vm, vm_url, enable_sharing_vm):
     responce = requests.put(vm_url, headers=headers_vm, json=data, verify=False)
     if responce.ok:
         return responce.json()
-
 
 def volume_ops(mod, connectn, authtoken, tenant_id, vol_id, size, enable_sharing_vm):
     service_name = "volume"
