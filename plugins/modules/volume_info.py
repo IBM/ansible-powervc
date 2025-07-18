@@ -12,7 +12,7 @@ author:
     - Karteesh Kumar Vipparapelli (@vkarteesh)
 short_description: Fetches the Volume Details
 description:
-  - This playbook helps in performing the Volume Information Fetch operations on the Volume provided.
+  - This playbook helps in performing the Volume Fetch operations on the Volume provided.
 options:
   name:
     description:
@@ -66,7 +66,7 @@ EXAMPLES = '''
     gather_facts: no
     tasks:
        - name: Perform Volume Details Operation
-         ibm.powervc.volume_attach:
+         ibm.powervc.volume_info:
             cloud: "CLOUD_NAME"
             name: "VOLUME_NAME"
             validate_certs: no
