@@ -5,6 +5,7 @@ This module performs the PowerVC Volume Update operations
 """
 
 import requests
+import json
 
 
 def get_headers(authtoken):
