@@ -10,9 +10,9 @@ DOCUMENTATION = '''
 module: volume_attach
 author:
     - Karteesh Kumar Vipparapelli (@vkarteesh)
-short_description: Fetches the Volume Details
+short_description: Fetches the Volume Type/Storage Templates Details
 description:
-  - This playbook helps in performing the Volume Fetch operations on the Volume provided.
+  - This playbook helps in performing the Volume Type/Storage Templates Fetch operations on the Storage Name provided.
 options:
   name:
     description:
@@ -27,7 +27,7 @@ options:
 '''
 
 EXAMPLES = '''
-  - name: Volume Details Playbook
+  - name: Storage Templates Details Playbook
     hosts: localhost
     gather_facts: no
     vars:
@@ -48,7 +48,7 @@ EXAMPLES = '''
        - debug:
             var: result
 
-  - name: Volume Details Playbook using Volume Name
+  - name: Storage Templates Details Playbook using Volume IDs
     hosts: localhost
     gather_facts: no
     tasks:
@@ -61,7 +61,7 @@ EXAMPLES = '''
        - debug:
             var: result
 
-  - name: Volume Details Playbook using the Volume IDs
+  - name: Storage Templates Details Playbook using the Volume Name
     hosts: localhost
     gather_facts: no
     tasks:

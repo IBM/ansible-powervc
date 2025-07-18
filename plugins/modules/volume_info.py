@@ -12,7 +12,7 @@ author:
     - Karteesh Kumar Vipparapelli (@vkarteesh)
 short_description: Fetches the Volume Details
 description:
-  - This playbook helps in performing the Volume Fetch operations on the Volume provided.
+  - This playbook helps in performing the Volume Information Fetch operations on the Volume provided.
 options:
   name:
     description:
@@ -48,7 +48,7 @@ EXAMPLES = '''
        - debug:
             var: result
 
-  - name: Volume Details Playbook using Volume Name
+  - name: Volume Details Playbook using Volume ID
     hosts: localhost
     gather_facts: no
     tasks:
@@ -61,7 +61,7 @@ EXAMPLES = '''
        - debug:
             var: result
 
-  - name: Volume Details Playbook using the Volume IDs
+  - name: Volume Details Playbook using the Volume Name
     hosts: localhost
     gather_facts: no
     tasks:
