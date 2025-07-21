@@ -11,7 +11,7 @@
       project_domain_name: PROJECT_DOMAIN_NAME
       user_domain_name: USER_DOMAIN_NAME
     tasks:
-       - name: Performing the DELETE SCG Operation
+       - name: Performing the Resize VM Operation
          ibm.powervc.resize_vm:
             auth: "{{ auth }}"
             name: "VM_NAME"

@@ -16,12 +16,12 @@ description:
 options:
   name:
     description:
-      - Name of the Volume
+      - Name of the Volume Type or Storage Template
     required: true
     type: str
   id:
     description:
-      - ID of the Volume
+      - ID of the Volume Type or Storage Template
     type: str
 
 '''
