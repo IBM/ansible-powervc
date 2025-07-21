@@ -20,11 +20,11 @@
      - debug:
           var: result
 
-- name: List Volume Type Details Playbook using ID
+- name: Volume Details Playbook using Volume ID
   hosts: localhost
   gather_facts: no
   tasks:
-     - name: Fetch Volume Type Details
+     - name: Perform Volume Details Operation
        ibm.powervc.volume_type_info:
           cloud: "CLOUD_NAME"
           id: "VOLUME_ID"
@@ -33,11 +33,11 @@
      - debug:
           var: result
 
-- name: List Volume Type Details Playbook using Name
+- name: Volume Details Playbook using the Volume Name
   hosts: localhost
   gather_facts: no
   tasks:
-     - name: Fetch Volume Type Details
+     - name: Perform Volume Details Operation
        ibm.powervc.volume_type_info:
           cloud: "CLOUD_NAME"
           name: "VOLUME_NAME"
