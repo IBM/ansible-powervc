@@ -51,6 +51,7 @@ EXAMPLES = '''
          ibm.powervc.volume_update:
             auth: "{{ auth }}"
             name: "VOLUME_NAME"
+            size: "SIZE"
             validate_certs: no
          register: result
        - debug:
@@ -64,6 +65,7 @@ EXAMPLES = '''
          ibm.powervc.volume_update:
             cloud: "CLOUD_NAME"
             id: "VOLUME_ID"
+            enable_sharing_vm: "ENABLE_SHARING_VM"
             validate_certs: no
          register: result
        - debug:
@@ -77,6 +79,7 @@ EXAMPLES = '''
          ibm.powervc.volume_update:
             cloud: "CLOUD_NAME"
             name: "VOLUME_NAME"
+            size: "SIZE"
             validate_certs: no
          register: result
        - debug:
