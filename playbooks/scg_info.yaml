@@ -16,6 +16,7 @@
          register: result
        - debug:
             var: result
+
   - name: List all the SCG Details Playbook
     hosts: localhost
     gather_facts: no

@@ -1,7 +1,7 @@
 ---
-  - name: VM Resize Playbook
-    hosts: localhost
-    gather_facts: no
+- name: VM Resize Playbook
+  hosts: localhost
+  gather_facts: no
     vars:
      auth:
       auth_url: https://<POWERVC>:5000/v3
@@ -14,21 +14,21 @@
        - name: Performing the DELETE SCG Operation
          ibm.powervc.resize_vm:
             auth: "{{ auth }}"
-            vm_name: "VM_NAME"
+            name: "VM_NAME"
             template_type: "TEMPLATE_TYPE"
          register: result
        - debug:
             var: result
 
-  - name: Resize VM Playbook
-    hosts: localhost
-    gather_facts: no
-    tasks:
-       - name: Resize VM Operations
-         ibm.powervc.pin_vm:
-            cloud: "CLOUD_NAME"
-            name: "NAME"
-            validate_certs: no
-         register: result
-       - debug:
-            var: result
+- name: Resize VM Playbook
+  hosts: localhost
+  gather_facts: no
+  tasks:
+     - name: Resize VM Operations
+       ibm.powervc.resize_vm:
+          cloud: "CLOUD_NAME"
+          name: "VM_NAME"
+          validate_certs: no
+       register: result
+     - debug:
+          var: result

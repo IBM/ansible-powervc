@@ -7,7 +7,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = '''
 ---
-module: volume_attach
+module: volume_type_info
 author:
     - Karteesh Kumar Vipparapelli (@vkarteesh)
 short_description: Fetches the Volume Type/Storage Templates Details
@@ -40,7 +40,7 @@ EXAMPLES = '''
       user_domain_name: USER_DOMAIN_NAME
     tasks:
        - name: Perform Volume Details Operation
-         ibm.powervc.volume_info:
+         ibm.powervc.volume_type_info:
             auth: "{{ auth }}"
             name: "VOLUME_NAME"
             validate_certs: no
@@ -53,7 +53,7 @@ EXAMPLES = '''
     gather_facts: no
     tasks:
        - name: Perform Volume Details Operation
-         ibm.powervc.volume_info:
+         ibm.powervc.volume_type_info:
             cloud: "CLOUD_NAME"
             id: "VOLUME_ID"
             validate_certs: no
@@ -66,7 +66,7 @@ EXAMPLES = '''
     gather_facts: no
     tasks:
        - name: Perform Volume Details Operation
-         ibm.powervc.volume_attach:
+         ibm.powervc.volume_type_info:
             cloud: "CLOUD_NAME"
             name: "VOLUME_NAME"
             validate_certs: no

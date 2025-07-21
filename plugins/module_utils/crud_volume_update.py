@@ -50,7 +50,7 @@ def put_volume(headers_vm, vm_url, enable_sharing_vm):
         data = {"volume": {"multiattach": False}}
     responce = requests.put(vm_url, headers=headers_vm, json=data, verify=False)
     if responce.ok:
-       return responce.json()
+        return responce.json()
 
 
 def volume_ops(mod, connectn, authtoken, tenant_id, vol_id, size, enable_sharing_vm):
