@@ -15,10 +15,7 @@
        ibm.powervc.volume_update:
           auth: "{{ auth }}"
           name: "VOLUME_NAME"
-<<<<<<< HEAD
           size: "SIZE"
-=======
->>>>>>> d7185f3 (Add Volume Info, VolumeType Info and Volume Update features)
           validate_certs: no
        register: result
      - debug:
@@ -32,10 +29,7 @@
        ibm.powervc.volume_update:
           cloud: "CLOUD_NAME"
           name: "VOLUME_NAME"
-<<<<<<< HEAD
           enable_sharing_vm: "ENABLE_SHARING_VM"
-=======
->>>>>>> d7185f3 (Add Volume Info, VolumeType Info and Volume Update features)
           validate_certs: no
        register: result
      - debug:
@@ -49,10 +43,7 @@
        ibm.powervc.volume_update:
           cloud: "CLOUD_NAME"
           id: "VOLUME_ID"
-<<<<<<< HEAD
           size: "SIZE"
-=======
->>>>>>> d7185f3 (Add Volume Info, VolumeType Info and Volume Update features)
           validate_certs: no
        register: result
      - debug:
