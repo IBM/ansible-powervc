@@ -27,7 +27,7 @@ options:
 '''
 
 EXAMPLES = '''
-  - name: Storage Templates Details Playbook
+  - name: List Storage Templates/Volume Type Details Playbook
     hosts: localhost
     gather_facts: no
     vars:
@@ -39,7 +39,7 @@ EXAMPLES = '''
       project_domain_name: PROJECT_DOMAIN_NAME
       user_domain_name: USER_DOMAIN_NAME
     tasks:
-       - name: Perform Volume Details Operation
+       - name: Perform Volume Type Details Operation
          ibm.powervc.volume_type_info:
             auth: "{{ auth }}"
             name: "VOLUME_NAME"
@@ -48,11 +48,11 @@ EXAMPLES = '''
        - debug:
             var: result
 
-  - name: Storage Templates Details Playbook using Volume IDs
+  - name: List Storage Templates/Volume Type Details Playbook using IDs
     hosts: localhost
     gather_facts: no
     tasks:
-       - name: Perform Volume Details Operation
+       - name: Perform Volume Type Details Operation
          ibm.powervc.volume_type_info:
             cloud: "CLOUD_NAME"
             id: "VOLUME_ID"
@@ -61,11 +61,11 @@ EXAMPLES = '''
        - debug:
             var: result
 
-  - name: Storage Templates Details Playbook using the Volume Name
+  - name: List Storage Templates/Volume Type Details Playbook using the Volume Name
     hosts: localhost
     gather_facts: no
     tasks:
-       - name: Perform Volume Details Operation
+       - name: Perform Volume Type Details Operation
          ibm.powervc.volume_type_info:
             cloud: "CLOUD_NAME"
             name: "VOLUME_NAME"
