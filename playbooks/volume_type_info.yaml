@@ -1,5 +1,5 @@
 ---
-- name: Volume Details Playbook
+- name: List Volume Type Details Playbook
   hosts: localhost
   gather_facts: no
   vars:
@@ -11,7 +11,7 @@
     project_domain_name: PROJECT_DOMAIN_NAME
     user_domain_name: USER_DOMAIN_NAME
   tasks:
-     - name: Perform Volume Details Operation
+     - name: Fetch Volume Type Details
        ibm.powervc.volume_type_info:
           auth: "{{ auth }}"
           name: "VOLUME_NAME"
@@ -20,11 +20,11 @@
      - debug:
           var: result
 
-- name: Volume Details Playbook using Volume ID
+- name: List Volume Type Details Playbook using ID
   hosts: localhost
   gather_facts: no
   tasks:
-     - name: Perform Volume Details Operation
+     - name: Fetch Volume Type Details
        ibm.powervc.volume_type_info:
           cloud: "CLOUD_NAME"
           id: "VOLUME_ID"
@@ -33,11 +33,11 @@
      - debug:
           var: result
 
-- name: Volume Details Playbook using the Volume Name
+- name: List Volume Type Details Playbook using Name
   hosts: localhost
   gather_facts: no
   tasks:
-     - name: Perform Volume Details Operation
+     - name: Fetch Volume Type Details
        ibm.powervc.volume_type_info:
           cloud: "CLOUD_NAME"
           name: "VOLUME_NAME"
