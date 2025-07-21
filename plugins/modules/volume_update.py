@@ -7,7 +7,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = '''
 ---
-module: volume_attach
+module: volume_update
 author:
     - Karteesh Kumar Vipparapelli (@vkarteesh)
 short_description: Performs the Volume Update Operations

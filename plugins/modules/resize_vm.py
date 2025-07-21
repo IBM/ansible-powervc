@@ -46,7 +46,7 @@ EXAMPLES = '''
        - name: Performing the DELETE SCG Operation
          ibm.powervc.resize_vm:
             auth: "{{ auth }}"
-            vm_name: "VM_NAME"
+            name: "VM_NAME"
             template_type: "TEMPLATE_TYPE"
             validate_certs: no
          register: result
