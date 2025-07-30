@@ -40,10 +40,10 @@ def post_volume_type(headers_vm, url, extra_specs):
         return (f"Volume Type changes are done - {responce.json()}")
 
 
-def volume_ops(mod, connectn, authtoken, tenant_id, vol_id, size, enable_sharing_vm):
+def volume_ops(mod, connectn, authtoken, tenant_id, vol_type_id, extra_specs):
     service_name = "volume"
     endpoint = get_endpoint_url_by_service_name(mod, connectn, service_name, tenant_id)
     headers_vm = get_headers(authtoken)
-    volume_type_url = f"{endpoint}/volumes/{vol_id}/extra_specs"
+    volume_type_url = f"{endpoint}/types/{vol_type_id}/extra_specs"
     result = post_volume_type(mod, headers_vm, volume_type_url, extra_specs)
     return result
