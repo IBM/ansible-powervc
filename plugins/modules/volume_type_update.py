@@ -108,21 +108,21 @@ class VolumeTypeUpdateModule(OpenStackModule):
     def run(self):
         authtoken = self.conn.auth_token
         tenant_id = self.conn.session.get_project_id()
-        vol_name = self.params['name']
-        vol_id = self.params['id']
+        vol_type_name = self.params['name']
+        vol_type_id = self.params['id']
         extra_specs = self.params['extra_specs']
-        if vol_name:
-            vol_id = self.conn.block_storage.find_volume(vol_name, ignore_missing=False).id
+        if vol_type_name:
+            vol_type_id = self.conn.block_storage.find_type(vol_type_name, ignore_missing=False).id
 
         try:
-            res = volume_ops(self, self.conn, authtoken, tenant_id, vol_id, extra_specs)
+            res = volume_ops(self, self.conn, authtoken, tenant_id, vol_type_id, extra_specs)
             self.exit_json(changed=True, result=res)
         except Exception as e:
             self.fail_json(msg=f"An unexpected error occurred: {str(e)}", changed=True)
 
 
 def main():
-    module = VolumeUpdateModule()
+    module = VolumeTypeUpdateModule()
     module()
 
 
