@@ -7,7 +7,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = '''
 ---
-module: volume_attach
+module: volume_info
 author:
     - Karteesh Kumar Vipparapelli (@vkarteesh)
 short_description: Fetches the Volume Details
