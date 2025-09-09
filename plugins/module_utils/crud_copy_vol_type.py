@@ -43,6 +43,7 @@ def copy_voltype(module, authtoken, voltype_url, id, name):
     if responce.ok:
         return responce.json()
 
+
 def copy_voltype_ops(mod, connectn, authtoken, tenant_id, voltemp_id, name):
     service_name = "volume"
     endpoint = get_endpoint_url_by_service_name(mod, connectn, service_name, tenant_id)
