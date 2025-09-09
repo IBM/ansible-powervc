@@ -42,7 +42,7 @@ EXAMPLES = '''
        - name: Perform Volume Type Details Operation
          ibm.powervc.volume_type_info:
             auth: "{{ auth }}"
-            name: "VOLUME_NAME"
+            name: "VOLUME_TYPE_NAME"
             validate_certs: no
          register: result
        - debug:
@@ -55,7 +55,7 @@ EXAMPLES = '''
        - name: Perform Volume Type Details Operation
          ibm.powervc.volume_type_info:
             cloud: "CLOUD_NAME"
-            id: "VOLUME_ID"
+            id: "VOLUME_TYPE_ID"
             validate_certs: no
          register: result
        - debug:
@@ -68,7 +68,7 @@ EXAMPLES = '''
        - name: Perform Volume Type Details Operation
          ibm.powervc.volume_type_info:
             cloud: "CLOUD_NAME"
-            name: "VOLUME_NAME"
+            name: "VOLUME_TYPE_NAME"
             validate_certs: no
          register: result
        - debug:
