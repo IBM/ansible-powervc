@@ -389,7 +389,7 @@ class ServerOpsModule(OpenStackModule):
                            "config_drive": True,
                            "user_data": userdata,
                            "networks": nics,
-                           "metadata":{"primary_network":uuid_value},
+                           "metadata": {"primary_network": uuid_value},
                            "flavor": flavor},
                            "os:scheduler_hints": collocation_rule_id}
                 res = server_ops(self, self.conn, authtoken, tenant_id, vm_name, state, vm_data, vm_id=None)
@@ -408,4 +408,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
