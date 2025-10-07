@@ -241,7 +241,7 @@ class ServerOpsModule(OpenStackModule):
                 self.fail_json(
                     msg="Each entry in the 'nics' parameter must be a dict.")
             if net.get('network_id'):
-                nics.append(net)
+                nics.append({"uuid": net["network_id"]})
             elif net.get('network_name'):
                 network_id = self.conn.network.find_network(
                     net['network_name'], ignore_missing=False).id
@@ -251,14 +251,14 @@ class ServerOpsModule(OpenStackModule):
                 nics.append(net)
             elif net.get('fixed_ip'):
                 nics.append(net)
-            elif net.get('port-id'):
-                nics.append(net)
-            elif net.get('port-name'):
+            elif net.get('port_id'):
+                nics.append({"port": net["port_id"]})
+            elif net.get('port_name'):
                 port_id = self.conn.network.find_port(
-                    net['port-name'], ignore_missing=False).id
+                    net['port_name'], ignore_missing=False).id
                 net = copy.deepcopy(net)
-                del net['port-name']
-                net['port-id'] = port_id
+                del net['port_name']
+                net['port'] = port_id
                 nics.append(net)
 
             if 'tag' in net:
@@ -292,14 +292,14 @@ class ServerOpsModule(OpenStackModule):
                 image_volume_override.append(net)
             elif net.get('template_id'):
                 image_volume_override.append(net)
-            elif net.get('port-id'):
+            elif net.get('port_id'):
                 image_volume_override.append(net)
-            elif net.get('port-name'):
+            elif net.get('port_name'):
                 port_id = self.conn.network.find_port(
                     net['port-name'], ignore_missing=False).id
                 net = copy.deepcopy(net)
-                del net['port-name']
-                net['port-id'] = port_id
+                del net['port_name']
+                net['port'] = port_id
                 image_volume_override.append(net)
 
             if 'tag' in net:
@@ -331,7 +331,6 @@ class ServerOpsModule(OpenStackModule):
             flavor_id = self.conn.compute.find_flavor(flavor, ignore_missing=False).id
             imageRef = self.conn.compute.find_image(image, ignore_missing=False).id
             nics = self._parse_nics()
-
             if user_data:
                 base64_encoded = base64.b64encode(user_data.encode('utf-8'))
                 userdata = base64_encoded.decode('utf-8')
@@ -367,6 +366,19 @@ class ServerOpsModule(OpenStackModule):
                 if availability_zone:
                     availability_zone = ":" + availability_zone
 
+                uuid_value = None
+                net_port = any("port" in net for net in nics)
+                net_uuid = any("uuid" in net for net in nics)
+
+                if net_port and net_uuid:
+                    nics = [net for net in nics if not (uuid_value := net.get('uuid'))]
+
+                elif net_uuid and not net_port:
+                    for net in nics:
+                        if "uuid" in net:
+                            uuid_value = net["uuid"]
+                            break
+
                 vm_data = {"server": {
                            "name": vm_name,
                            "imageRef": imageRef,
@@ -377,6 +389,7 @@ class ServerOpsModule(OpenStackModule):
                            "config_drive": True,
                            "user_data": userdata,
                            "networks": nics,
+                           "metadata":{"primary_network":uuid_value},
                            "flavor": flavor},
                            "os:scheduler_hints": collocation_rule_id}
                 res = server_ops(self, self.conn, authtoken, tenant_id, vm_name, state, vm_data, vm_id=None)
@@ -395,3 +408,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
