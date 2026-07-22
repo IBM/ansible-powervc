@@ -1,0 +1,38 @@
+---
+- name: "Run lspvc command on PowerVC host"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "List hypervisor"
+      ibm.powervc.cli.lspvc:
+        host: "{{ ipaddress }}"
+        username: "{{ pvc_user }}"
+        password: "{{ pvcroot_password }}"
+        state: "present"
+        component: "hypervisor"
+      register: result
+
+    - name: "List uvmid"
+      ibm.powervc.cli.lspvc:
+        host: "{{ ipaddress }}"
+        username: "{{ pvc_user }}"
+        password: "{{ pvcroot_password }}"
+        state: "present"
+        component: "uvmid"
+      register: result
+
+    - name: "List powervc-version"
+      ibm.powervc.cli.lspvc:
+        host: "{{ ipaddress }}"
+        username: "{{ pvc_user }}"
+        password: "{{ pvcroot_password }}"
+        state: "present"
+        component: "powervc-version"
+      register: result
+
+    - name: "Display command output"
+      debug:
+        var: result.stdout_lines

@@ -1,0 +1,27 @@
+- name: "Manage PowerVC Hostname"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Modify the hostname"
+      ibm.powervc.cli.hostname:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "modify"
+        new_hostname: "{{ value }}"
+      register: result
+
+    - name: "Show current hostname"
+      ibm.powervc.cli.hostname:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "show"
+      register: result
+
+    - name: "Show command output"
+      debug:
+        var: result.stdout_lines

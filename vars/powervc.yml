@@ -1,0 +1,106 @@
+ipaddress: ""
+pvc_user: "pvcroot"
+command: ""
+virtual_ip: ""
+node_count: 1   # Positive integer
+cluster_name: ""
+filesystem: ""  # /powervchome, /dump, /extra, /powervcdata, /powervclog
+days: 1   # Positive integer
+hours: 1   # Positive integer
+size: 1   # Positive integer
+database: ""
+collection: ""
+query: ""
+inventory_user: "" # Inventory username
+node_password: "" # Password for the inventory user
+inventory_hosts: # All the nodes in the inventory
+number_nodes: 1
+username: ""
+
+validate_action: "VALIDATE"
+debug_action: ""
+component: ""
+firewall_action: ""          # Options: add, remove
+address: ""
+netmask: ""
+interface: ""
+hostname_action: ""        # Options: show, modify
+value: ""                      # Required only if hostname_action = modify
+timezone_action: ""      # Options: status, show, set-time, list-timezones, set-timezone, settings, properties
+locale_name: ""           # Value of desired locale
+
+config_metric : ""         # Allowed: ['cpu', 'memory', 'disk', 'network', 'load']
+config_action : ""         # Options: add, remove, list
+control_action : "t"      # Options : start, stop, status
+control_metric : ""           # Options : METRIC (applicable only for status)
+timezone_value : ""           # Options : give any valid time or time-zone
+ldap_mode : ""            # Options : json, show, quiet
+confirm : "yes"               # Options : yes, no
+
+
+chpvcuser_action: ""      # Options : ch_passwd, modify_group
+chpvcuser_username: ""
+chpvcuser_cluster: ""
+chpvcuser_group: ""                   # Only for modify_group subcommand
+
+
+# User Management Variables
+new_user: "" # User to be created/modified
+filter_list: "" # List of filters
+group_name: "" # Group name (pvcviewer, pvcoperator, pvcsuperadmin)
+silent: false # Silent mode for user removal
+
+# List User Variables
+lspvcuser_filter: "" # Filter for lspvcuser command (e.g., name=root, uid=1000, groups=adm)
+lspvcuser_script: false # Script mode for lspvcuser command
+lspvcuser_fields: "" # Fields for lspvcuser command (name, uid, groups)
+
+# Modify User Variables (chpvcuser)
+new_password: "" # New password for user
+modify_group: "" # New group for user (modify_group: pvcviewer, pvcoperator, pvcsuperadmin)
+expiry_days: "" # Password expiry in days
+
+
+#Powervc Log Variables
+service: "" # Service name (e.g., general, network, storage)
+action: "" # Action (debug)
+modules: "" # Modules (e.g., nova.api.openstack.compute.contrib.flavors)
+user_response: "y" # Response to interactive prompt when enabling general service debug: 'y' or 'n'
+
+# Service Management Variables
+operation: ""        # Options: start, stop, restart, status, enable, disable, list
+remote: false        # Set to true to enable powervc-services remote operation
+node: ""             # Options: local, all, or a specific node name
+advanced: ""         # Options: component, node, inventory_hostname (restart only)
+skip: ""             # Component(s) to skip during start, stop, or restart
+output_format: ""    # Options: raw, json, detail
+
+# Scale Config Variables
+scale_config_service: "nova-compute-svc"
+scale_config_memory_max: "64G" 
+scale_config_host: "" 
+
+
+#pvc mon variables
+resource: ""  # Options: disk, proc, mem, swap, inode
+interval: 4   # Interval in seconds (0 for one-time output, default: 4)
+
+#config_policy variables
+policy: "" # Options: ppc, restricted
+
+# PowerVC OpsMgr Update Variables
+update_node: "" # Node hostname/IP for rolling upgrade (required unless using offline_mode)
+update_skip_restart: false # Skip restart for tasks with restart tag
+update_list_ifixes: false # List applied ifixes from cluster
+update_force: false # Force update operation
+update_verbose: false # Enable verbose output during update
+update_ifix_isopath: "" # Absolute path of ifix ISO file
+update_prepare_isopath: "" # Absolute path of ISO for system preparation
+update_offline_mode: true # Block API calls during update (no node required)
+update_skip_remote_node_upgrade: false # Skip remote node (Novalink, compute, cinder backup) upgrade
+update_state: "" # State: present (update/prepare), absent (cleanup)
+
+#scp variables
+source_file: "" #local path 
+destination_file: ""  #remote path
+recursive: ""  #true/false
