@@ -1,0 +1,62 @@
+---
+- name: "Remote command execution"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Run command on PowerVC Controller"
+      ibm.powervc.cli.command:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        command: "{{ command }}"
+        messages: "{{ messages }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result.stdout_lines
+
+---
+- name: "Remote command execution"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Run command on PowerVC Controller"
+      ibm.powervc.cli.command:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        command: "{{ command }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result.stdout_lines
+
+---
+- name: "Remote command execution"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Run a command with input messages"
+      ibm.powervc.cli.command:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        command: "powervc-opsmgr restore -c siva1234"
+        messages:
+          'Last successful backup at (.)*(\n)*(\s)*Do you want to continue restoring the backup? [Y/N]:(\s)*': 'y'
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result.stdout_lines

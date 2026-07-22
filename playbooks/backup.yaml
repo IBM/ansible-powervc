@@ -1,0 +1,63 @@
+---
+- name: "PowerVC Backup"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Take a backup of the cluster"
+      ibm.powervc.cli.backup:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        state: present
+        mode: "silent"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
+
+
+- name: "PowerVC Backup"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Take a backup of the cluster"
+      ibm.powervc.cli.backup:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        state: present
+        mode: verbose
+      register: result
+    - name: "Show stdout"
+      debug:
+        var: result
+
+
+- name: "PowerVC Backup"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Take a backup of the cluster"
+      ibm.powervc.cli.backup:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        state: present
+        preserve: 3
+      register: result
+    - name: "Show stdout"
+      debug:
+        var: result

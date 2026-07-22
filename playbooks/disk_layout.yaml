@@ -1,0 +1,19 @@
+---
+- name: "Manage PowerVC Disk Partitions"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Show the disk layout"
+      ibm.powervc.cli.disk_layout:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "list"
+      register: result
+
+    - name: "Show command output"
+      debug:
+        var: result.stdout_lines
