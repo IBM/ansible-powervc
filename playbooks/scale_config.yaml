@@ -1,0 +1,87 @@
+---
+- name: Manage PowerVC Scale Configuration
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Information Only"
+      debug:
+        msg:
+          - "This operation may take several minutes."
+          - "Please wait while tasks are running."
+
+    - name: List current scale configuration
+      ibm.powervc.cli.scale_config:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: show
+      register: result
+
+    - debug:
+        var: result.stdout_lines
+
+    - name: Apply scale settings from scale.conf
+      ibm.powervc.cli.scale_config:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: present
+      register: result
+
+    - debug:
+        var: result.stdout_lines
+
+    - name: Configure nova-compute-svc
+      ibm.powervc.cli.scale_config:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: present
+        service: "{{ scale_config_service}}"
+        memory_max: "{{ scale_config_memory_max }}"
+      register: result
+
+    - debug:
+        var: result.stdout_lines
+
+    - name: Configure nova-compute-svc on specific host
+      ibm.powervc.cli.scale_config:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: present
+        service: "{{ scale_config_service }}"
+        memory_max: "{{ scale_config_memory_max }}"
+        host: "{{ scale_config_host }}"
+      register: result
+
+    - debug:
+        var: result.stdout_lines
+
+    - name: Configure nova-compute-svc and restart service
+      ibm.powervc.cli.scale_config:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: present
+        service: "{{ scale_config_service }}"
+        memory_max: "{{ scale_config_memory_max }}"
+        restart: true
+      register: result
+
+    - debug:
+        var: result.stdout_lines
+
+    - name: Revert scale settings
+      ibm.powervc.cli.scale_config:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: absent
+      register: result
+
+    - debug:
+        var: result.stdout_lines

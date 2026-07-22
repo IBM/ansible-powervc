@@ -1,0 +1,20 @@
+---
+- name: "Monitor PowerVC Node Resources (with interval)"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Monitor resource usage with specified interval"
+      ibm.powervc.cli.pvcmon:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        resource: "{{ resource }}"
+        interval: "{{ interval }}"
+      register: result
+
+    - name: "Display monitoring output"
+      debug:
+        var: result.stdout_lines

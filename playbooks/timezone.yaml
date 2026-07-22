@@ -1,0 +1,27 @@
+- name: "Manage PowerVC timezone commands"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Set timezone"
+      ibm.powervc.cli.timezone:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "present"
+        value: "{{ timezone_value }}"
+      register: result
+
+    - name: "Show current timezone"
+      ibm.powervc.cli.timezone:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "present"
+      register: result
+
+    - name: "Show command output"
+      debug:
+        var: result.stdout_lines
