@@ -44,7 +44,7 @@ options:
     type: str
   query:
     description:
-      - ';' separated queries
+      - separated queries
     type: str
 """
 
