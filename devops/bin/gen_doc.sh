@@ -23,7 +23,7 @@ DOC_BLD_DIR="$DIR/docs/build"
 [[ ! -d "$DOC_BLD_DIR" ]] && mkdir -p "$DOC_BLD_DIR"
 
 
-ansible-doc-extractor "$DOC_SRC_DIR"/modules "$MODULE_DIR"/*.py
+ansible-doc-extractor "$DOC_SRC_DIR"/modules "$MODULE_DIR"/*.py "$MODULE_DIR"/cli/*.py
 
 
 # create the html files

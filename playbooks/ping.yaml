@@ -1,0 +1,51 @@
+---
+- name: "Ping PowerVC Controller"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+
+  tasks:
+    - name: "Ping PowerVC from Ansible controller"
+      ibm.powervc.cli.ping:
+        login_host: "{{ ipaddress }}"
+      register: result
+
+    - name: "Show ping result"
+      debug:
+        var: result
+
+---
+- name: "Ping PowerVC with custom count"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+
+  tasks:
+    - name: "Ping PowerVC with 10 packets"
+      ibm.powervc.cli.ping:
+        login_host: "{{ ipaddress }}"
+        count: 10
+      register: result
+
+    - name: "Show ping result"
+      debug:
+        var: result
+
+
+---
+- name: "Ping PowerVC with timeout"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+
+  tasks:
+    - name: "Ping PowerVC with timeout"
+      ibm.powervc.cli.ping:
+        login_host: "{{ ipaddress }}"
+        count: 5
+        timeout: 2
+      register: result
+
+    - name: "Show ping result"
+      debug:
+        var: result

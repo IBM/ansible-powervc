@@ -1,0 +1,176 @@
+---
+- name: Manage PowerVC users
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  
+  tasks:
+    - name: "Remove a user"
+      ibm.powervc.cli.usermanagement:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        new_user: "{{ new_user }}"
+        state: "absent"
+        cluster: "{{ cluster_name }}"
+        silent: "{{ silent | bool }}"
+        confirm: "yes"
+      register: result
+
+    - name: "Show remove user output"
+      debug:
+        var: result.stdout_lines
+
+    - name: "Create a user"
+      ibm.powervc.cli.usermanagement:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        new_user: "{{ new_user }}"
+        state: "present"
+        cluster: "{{ cluster_name }}"
+        group: "{{ group_name }}"
+        new_password: "{{ pvcroot_password }}"
+      register: result
+
+    - name: "Show create user output"
+      debug:
+        var: result.stdout_lines
+
+    - name: "Create a user with password expiry"
+      ibm.powervc.cli.usermanagement:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        new_user: "{{ new_user }}"
+        state: "present"
+        cluster: "{{ cluster_name }}"
+        group: "{{ group_name }}"
+        new_password: "{{ pvcroot_password }}"
+        expiry: "{{ expiry_days }}"
+      register: result
+
+    - name: "Show create user with expiry output"
+      debug:
+        var: result.stdout_lines
+
+    - name: Lists user information or manages users.
+      ibm.powervc.cli.usermanagement:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "show"
+        filter: "{{ lspvcuser_filter }}"
+        script: "{{ lspvcuser_script | bool }}"
+        fields: "{{ lspvcuser_fields }}"
+      register: result
+
+    - name: "Show list users output"
+      debug:
+        var: result.stdout_lines
+
+    - name: Lists user information.
+      ibm.powervc.cli.usermanagement:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "show"
+        filter: "{{ filter_list }}"
+      register: result
+
+    - name: "Show filtered users output"
+      debug:
+        var: result.stdout_lines
+
+    - name: Lists user information in scripts.
+      ibm.powervc.cli.usermanagement:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "show"
+        script: true
+      register: result
+
+    - name: "Show script mode output"
+      debug:
+        var: result.stdout_lines
+
+    - name: Lists user information with field value.
+      ibm.powervc.cli.usermanagement:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "show"
+        script: true
+        fields: "name"
+      register: result
+
+    - name: "Show field-specific output"
+      debug:
+        var: result.stdout_lines
+
+    - name: "Change user password"
+      ibm.powervc.cli.usermanagement:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "modify"
+        action: "ch_passwd"
+        new_user: "{{ pvc_user }}"
+        cluster: "{{ cluster_name }}"
+        new_password: "{{ new_password }}"
+      register: result
+
+    - name: "Show password change output"
+      debug:
+        var: result.stdout_lines
+
+    - name: "Reset another user's password to default"
+      ibm.powervc.cli.usermanagement:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "modify"
+        action: "reset_passwd"
+        new_user: "{{ new_user }}"
+        cluster: "{{ cluster_name }}"
+      register: result
+
+    - name: "Show reset password output"
+      debug:
+        var: result.stdout_lines
+
+    - name: "Modify user group"
+      ibm.powervc.cli.usermanagement:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "modify"
+        action: "modify_group"
+        new_user: "{{ new_user }}"
+        cluster: "{{ cluster_name }}"
+        group: "{{ modify_group }}"
+      register: result
+
+    - name: "Show output"
+      debug:
+        var: result.stdout_lines
+
+    - name: "Update password expiry"
+      ibm.powervc.cli.usermanagement:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "modify"
+        action: "update_expiry"
+        new_user: "{{ new_user }}"
+        cluster: "{{ cluster_name }}"
+        expiry: "{{ expiry_days }}"
+      register: result
+
+    - name: "Show expiry update output"
+      debug:
+        var: result.stdout_lines

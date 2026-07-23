@@ -1,0 +1,66 @@
+---
+- name: "PowerVC Filesystem Management"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "List Filesystem"
+      ibm.powervc.cli.filesystem:
+        state: "list"
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        filesystem_name: "{{ filesystem }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
+
+---
+- name: "PowerVC Filesystem Management"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "List Filesystems in json format"
+      ibm.powervc.cli.filesystem:
+        state: list
+        json_format: "yes"
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        filesystem_name: "{{ filesystem }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
+
+
+---
+- name: "PowerVC Filesystem Management"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Free space in a filesystem"
+      ibm.powervc.cli.filesystem:
+        state: "free"
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        days: "{{ days }}"
+        hours: "{{ hours }}"
+        size: "{{ size }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result

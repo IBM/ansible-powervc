@@ -1,0 +1,27 @@
+- name: Run chpvc locale utility
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Show current locale"
+      ibm.powervc.cli.locale:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "present"
+      register: result
+
+    - name: "Modify the locale"
+      ibm.powervc.cli.locale:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "present"
+        locale_name: "{{ locale_name }}"
+      register: result
+
+    - name: "Display command output"
+      debug:
+        var: result.stdout_lines

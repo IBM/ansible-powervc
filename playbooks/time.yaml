@@ -1,0 +1,45 @@
+- name: "Manage PowerVC time commands"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Show settings"
+      ibm.powervc.cli.time:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "show"
+        action: "{{ timezone_action }}"
+      register: result
+
+    - name: "Show properties"
+      ibm.powervc.cli.time:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "show"
+        action: "{{ timezone_action }}"
+      register: result
+    
+    - name: "Set time"
+      ibm.powervc.cli.time:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "present"
+        value: "{{ timezone_value }}"
+      register: result
+
+    - name: "Show current time"
+      ibm.powervc.cli.time:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "present"
+      register: result
+
+    - name: "Show command output"
+      debug:
+        var: result.stdout_lines

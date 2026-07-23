@@ -1,0 +1,44 @@
+---
+- name: "PowerVC Database Operations"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Query MongoDB"
+      ibm.powervc.cli.database_operation:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        type: mongodb
+        database: "{{ database }}"
+        collection: "{{ collection }}"
+        query: "{{ query }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
+
+---
+- name: "PowerVC Database Operations"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Query MariaDB"
+      ibm.powervc.cli.database_operation:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        type: mariadb
+        database: "{{ database }}"
+        query: "{{ query }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
