@@ -45,7 +45,11 @@ def get_collocation_rules_id(mod, connectn, authtoken, tenant_id, collocation_ru
     return collocation_id
 
 
-def server_flavor(mod, connectn, authtoken, tenant_id, flavor_id, image_id, volid, template_id, scg_id, virtual_serial_number=None, pmem_volume=None):
+def server_flavor(
+        mod, connectn, authtoken, tenant_id, flavor_id, image_id,
+        volid, template_id, scg_id, virtual_serial_number=None,
+        pmem_volume=None, affinity_score=None,
+        affinity_score_action=None):
     service_name = "compute"
     endpoint_compute = get_endpoint_url_by_service_name(mod, connectn, service_name, tenant_id)
     image_url = f"{endpoint_compute}/images/{image_id}"
@@ -79,6 +83,16 @@ def server_flavor(mod, connectn, authtoken, tenant_id, flavor_id, image_id, voli
                 f"affinity:{str(volume['affinity']).lower()}, "
                 f"device:{volume['device']}"
             )
+    if affinity_score is not None:
+        flavor_specs['extra_specs'][
+            'powervm:min_affinity_score'
+        ] = str(affinity_score)
+
+    if affinity_score_action is not None:
+        flavor_specs['extra_specs'][
+            'powervm:min_affinity_score_action'
+        ] = affinity_score_action
+
     flavor_data = {
         **flavor_details,
         **flavor_specs  # Merge flavor_details and Include flavor_data as "extra_specs"
