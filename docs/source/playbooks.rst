@@ -147,3 +147,31 @@ levels INFO, WARN, ERROR, DEBUG.
 
 .. _ask-pass documentation:
    https://linux.die.net/man/1/sshpass
+
+
+Run Playbooks Using CLI Modules
+-------------------------------
+
+The sample playbooks that use modules from the **ibm.powervc.cli** namespace
+are designed to execute PowerVC CLI commands on the local host. Therefore, an
+Ansible inventory is not required when running these playbooks, as they use
+``localhost`` as the target host.
+
+To run a playbook that uses CLI modules, navigate to the collection's
+``playbooks`` directory and use the ``ansible-playbook`` command. For example:
+
+``ansible-playbook <playbook>.yaml``
+
+If the playbook uses Ansible Vault to securely store sensitive information,
+such as PowerVC credentials, use the ``--ask-vault-password`` option when
+running the playbook. This prompts you to enter the Vault password required
+to decrypt the protected variables. For example:
+
+``ansible-playbook <playbook>.yaml --ask-vault-password``
+
+.. note::
+   Playbooks that use modules from the ``ibm.powervc.cli`` namespace do not
+   require the ``-i <inventory>`` option because these modules are executed
+   against ``localhost``. Ensure that the required PowerVC connection details
+   and credentials are correctly configured in the variable files referenced
+   by the playbook before execution.

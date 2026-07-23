@@ -71,3 +71,20 @@ Availability
 .. _GitHub v1.3.0:
    https://github.com/IBM/ansible-powervc/releases/download/v1.3.0/ibm-powervc-1.3.0.tar.gz
 
+Version 1.4.0
+-------------
+Notes
+  * CLI modules are introduced as a new category of modules that connect to the PowerVC Controller over SSH and execute native PowerVC command-line operations.
+  * CLI modules support operations such as backup, restore, configure, update, service management, system information retrieval, and more.
+  * All CLI modules use SSH-based authentication (login_host, login_user, login_password) via the pvcroot user.
+  * pexpect is added as a dependency on the Ansible server to support interactive SSH command execution used by CLI modules.
+
+Availability
+  * `Galaxy v1.4.0`_
+  * `GitHub v1.4.0`_
+
+.. _Galaxy v1.4.0:
+    https://galaxy.ansible.com/download/ibm-powervc-1.4.0.tar.gz
+.. _GitHub v1.4.0:
+     https://github.com/IBM/ansible-powervc/releases/download/v1.4.0/ibm-powervc-1.4.0.tar.gz
+
