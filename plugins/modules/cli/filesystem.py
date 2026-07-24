@@ -1,17 +1,23 @@
 #!/usr/bin/python
+
 ANSIBLE_METADATA = {'metadata_version': '1.1',
                     'status': ['preview'],
                     'supported_by': 'PowerVC'}
 
 
-DOCUMENTATION = """
+DOCUMENTATION = '''
 ---
 module: filesystem
 author:
     - Yogita Garani (@yogita.garani1)
-short_description: Manage filesystems in PowerVC
+short_description: Manage filesystems on the PowerVC Controller
 description:
-  - This module manages PowerVC filesystems on the Controller
+  - This module manages PowerVC filesystems on the Controller over SSH.
+  - Use C(state=list) to display filesystem information, with an optional
+    C(json_format=yes) flag for machine-readable output.
+  - Use C(state=free) to release filesystem space by age (C(days)/C(hours))
+    or by size (C(size)). At least one of C(days), C(hours), or C(size)
+    must be supplied when using C(state=free).
 options:
   login_host:
     description:
@@ -30,101 +36,124 @@ options:
     type: str
   state:
     description:
-      - State of the filesystem operation
+      - Operation to perform. C(list) displays filesystem information.
+        C(free) releases space from a filesystem.
     required: true
     type: str
+    choices: ['list', 'free']
   filesystem_name:
     description:
-      - Name of the filesystem
+      - Name of the filesystem to target. If omitted all filesystems
+        are listed. Only used with C(state=list).
+    required: false
     type: str
+    choices:
+      - /powervchome
+      - /dump
+      - /extra
+      - /powervcdata
+      - /powervclog
   days:
     description:
-      - Number of days of data to free
+      - Number of days of data to free. Used with C(state=free).
+    required: false
     type: int
   hours:
     description:
-      - number of hours of data to free
+      - Number of hours of data to free. Used with C(state=free).
+    required: false
     type: int
   size:
     description:
-      - Size of data to free
+      - Size of data to free (in MB). Used with C(state=free).
+    required: false
     type: int
   json_format:
     description:
-      - Flag to print output in json format (yes/no)
+      - When C(yes), print output in JSON format. Only used with C(state=list).
+    required: false
     type: str
-"""
+    choices: ['yes', 'no']
+    default: 'no'
+'''
 
-EXAMPLES = """
----
-- name: "PowerVC Filesystem Management"
+EXAMPLES = '''
+- name: "Filesystem Management - list all filesystems"
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "List Filesystem"
+    - name: "List all filesystems"
       ibm.powervc.cli.filesystem:
         state: "list"
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
-        filesystem_name: "{{ filesystem }}"
       register: result
-
-    - name: "Show stdout"
+    - name: "Show output"
       debug:
         var: result
 
----
-- name: "PowerVC Filesystem Management"
+- name: "Filesystem Management - list specific filesystem in JSON"
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "List Filesystems in json format"
+    - name: "List filesystem in JSON format"
       ibm.powervc.cli.filesystem:
-        state: list
+        state: "list"
         json_format: "yes"
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
-        filesystem_name: "{{ filesystem }}"
+        filesystem_name: "/powervclog"
       register: result
-
-    - name: "Show stdout"
+    - name: "Show output"
       debug:
         var: result
 
-
----
-- name: "PowerVC Filesystem Management"
+- name: "Filesystem Management - free space"
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Free space in a filesystem"
+    - name: "Free filesystem space older than 7 days"
       ibm.powervc.cli.filesystem:
         state: "free"
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
-        days: "{{ days }}"
-        hours: "{{ hours }}"
-        size: "{{ size }}"
+        days: 7
       register: result
-
-    - name: "Show stdout"
+    - name: "Show output"
       debug:
         var: result
-"""
+'''
+
+RETURN = '''
+changed:
+  description: Whether the operation executed successfully.
+  returned: always
+  type: bool
+rc:
+  description: Return code from the filesystem command.
+  returned: always
+  type: int
+stdout_lines:
+  description: Command output split into a list of lines.
+  returned: success
+  type: list
+  elements: str
+msg:
+  description: Human-readable status message.
+  returned: always
+  type: str
+'''
+
 from ansible_collections.ibm.powervc.plugins.module_utils.connection import Connection
-from ansible_collections.ibm.powervc.plugins.module_utils.errors import CLIError
 from ansible.module_utils.basic import AnsibleModule
 
 
@@ -135,66 +164,47 @@ def construct_command(
         hours=None,
         size=None,
         json_format="no"):
-    """
-    Construct the command based on the parameters
+    '''
+    Construct the lspvcfs / chpvcfs command from the given parameters.
 
-    :param str state: state
-    :param str filesystem: filesystem to run operation on
-    :param str days: Number of days data to free
-    :param str hours: Number of hours data to free
-    :param str size: Size of data to free
-    :param str output_format: Print output in json format
-    :return str, dict command, messages: Return the constructed command and its messages
-    """
-    messages = {}
+    :param str state: 'list' or 'free'
+    :param str filesystem: optional filesystem path filter
+    :param int days: days of data to free
+    :param int hours: hours of data to free
+    :param int size: size of data to free (MB)
+    :param str json_format: 'yes' or 'no'
+    :return tuple(str|None, dict): (command, messages)
+    '''
     command = None
-    if state == 'list' and json_format == 'no':
-        if filesystem is None:
-            command = "lspvcfs list-filesystems"
-        else:
-            command = f"lspvcfs list-filesystems --filesystem {filesystem}"
-    elif state == 'list' and json_format == 'yes':
-        if filesystem is None:
-            command = "lspvcfs list-filesystems --json"
-        else:
-            command = f"lspvcfs list-filesystems --json --filesystem {filesystem}"
+
+    if state == 'list':
+        command = "lspvcfs list-filesystems"
+        if json_format == 'yes':
+            command += " --json"
+        if filesystem is not None:
+            command += f" --filesystem {filesystem}"
+
     elif state == "free":
-        if any([days, hours, size]):
-            command = "chpvcfs -o f"
-            if days is not None:
-                command += f" -d {days}"
-            if hours is not None:
-                command += f" -hr {hours}"
-            if size is not None:
-                command += f" -s {size}"
-    return command, messages
+        if not any([days, hours, size]):
+            # No free parameters supplied — caller will fail_json
+            return None, {}
+        command = "chpvcfs -o f"
+        if days is not None:
+            command += f" -d {days}"
+        if hours is not None:
+            command += f" -hr {hours}"
+        if size is not None:
+            command += f" -s {size}"
+
+    return command, {}
 
 
-def run_cli_command():
-    """
-    Read all arguments from the ansible module and execute the command on the controller
-    """
-    module = AnsibleModule(
-        argument_spec=dict(
-            state=dict(type='str', required=True),
-            login_host=dict(type='str', required=True),
-            login_user=dict(type='str', required=True, no_log=True),
-            login_password=dict(type='str', required=True, no_log=True),
-            filesystem_name=dict(type='str', required=False, default=None, choices=[
-                None,
-                '/powervchome',
-                '/dump',
-                '/extra',
-                '/powervcdata',
-                '/powervclog'
-            ]),
-            days=dict(type='str', required=False, default=None),
-            hours=dict(type='str', required=False, default=None),
-            size=dict(type='str', required=False, default=None),
-            json_format=dict(type='str', required=False,
-                             default='no', choices=['yes', 'no']),
-        )
-    )
+def run_filesystem(module):
+    '''
+    Execute the filesystem command on the PowerVC Controller.
+
+    :param module: AnsibleModule instance
+    '''
     state = module.params['state']
     host_ip = module.params['login_host']
     user = module.params['login_user']
@@ -205,55 +215,84 @@ def run_cli_command():
     size = module.params['size']
     json_format = module.params['json_format']
 
-    output = None
-    changed = False
-    failed = True
-
     command, messages = construct_command(
         state, filesystem, days, hours, size, json_format)
-    if command is None and not messages:
-        module.fail_json(failed=True, changed=False, msg="Wrong arguments")
+
+    if command is None:
+        if state == 'free':
+            module.fail_json(
+                changed=False,
+                msg="state=free requires at least one of: days, hours, size"
+            )
+        else:
+            module.fail_json(
+                changed=False,
+                msg=f"Invalid state '{state}'. Expected one of: list, free"
+            )
+
+    # check_mode: list is read-only (changed=False); free would mutate (changed=True)
+    if module.check_mode:
+        module.exit_json(
+            changed=(state == "free"),
+            msg=f"[CHECK MODE] Would run: {command}"
+        )
 
     connection = Connection(module, host_ip, user,
                             password, command=command, messages=messages)
     try:
         rc, output = connection.run()
-        if int(rc) != 0:
-            changed = False
-            failed = True
-        else:
-            changed = True
-            failed = False
-    except (CLIError, Exception) as e:
-        msg = str(e)
-        module.fail_json(msg=msg)
-    result = dict(
-        changed=False,
-        failed=True,
-        warning=False,
-        stdout_lines="",
-        error="",
-        rc=1,
-        msg=''
-    )
-    result['changed'] = changed
-    result['failed'] = failed
-    result['rc'] = int(rc)
+    except Exception as e:
+        module.fail_json(changed=False, msg=str(e))
 
-    if output:
-        result['stdout_lines'] = output
-        result['msg'] = "Operation completed successfully"
-    else:
-        result['warning'] = output
-        result['msg'] = "Operation did not complete successfully"
-    module.exit_json(**result)
+    if int(rc) != 0:
+        module.fail_json(
+            msg=f"Filesystem operation failed with rc={rc}",
+            rc=int(rc),
+            stderr=output,
+            changed=False
+        )
+
+    if not output:
+        module.warn("Filesystem operation returned no output")
+
+    # list is a read-only inspection; free actually releases space
+    module.exit_json(
+        changed=(state == "free"),
+        rc=int(rc),
+        stdout_lines=output if output else [],
+        msg="Operation completed successfully"
+    )
 
 
 def main():
-    """
+    '''
     Main execution
-    """
-    run_cli_command()
+    '''
+    module = AnsibleModule(
+        argument_spec=dict(
+            state=dict(type='str', required=True, choices=['list', 'free']),
+            login_host=dict(type='str', required=True),
+            # F-unique: login_user must NOT have no_log — it is not a secret
+            login_user=dict(type='str', required=True),
+            login_password=dict(type='str', required=True, no_log=True),
+            filesystem_name=dict(type='str', required=False, default=None, choices=[
+                None,
+                '/powervchome',
+                '/dump',
+                '/extra',
+                '/powervcdata',
+                '/powervclog'
+            ]),
+            # F-unique: days/hours/size must be int to match DOCUMENTATION
+            days=dict(type='int', required=False, default=None),
+            hours=dict(type='int', required=False, default=None),
+            size=dict(type='int', required=False, default=None),
+            json_format=dict(type='str', required=False,
+                             default='no', choices=['yes', 'no']),
+        ),
+        supports_check_mode=True
+    )
+    run_filesystem(module)
 
 
 if __name__ == '__main__':

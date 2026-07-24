@@ -8,31 +8,36 @@
   tasks:
     - name: "List hypervisor"
       ibm.powervc.cli.lspvc:
-        host: "{{ ipaddress }}"
-        username: "{{ pvc_user }}"
-        password: "{{ pvcroot_password }}"
-        state: "present"
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
         component: "hypervisor"
       register: result
 
+    - name: "Show hypervisor output"
+      debug:
+        var: result.stdout_lines
+
     - name: "List uvmid"
       ibm.powervc.cli.lspvc:
-        host: "{{ ipaddress }}"
-        username: "{{ pvc_user }}"
-        password: "{{ pvcroot_password }}"
-        state: "present"
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
         component: "uvmid"
       register: result
 
+    - name: "Show uvmid output"
+      debug:
+        var: result.stdout_lines
+
     - name: "List powervc-version"
       ibm.powervc.cli.lspvc:
-        host: "{{ ipaddress }}"
-        username: "{{ pvc_user }}"
-        password: "{{ pvcroot_password }}"
-        state: "present"
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
         component: "powervc-version"
       register: result
 
-    - name: "Display command output"
+    - name: "Show version output"
       debug:
         var: result.stdout_lines

@@ -1,18 +1,20 @@
 #!/usr/bin/python
+
 ANSIBLE_METADATA = {'metadata_version': '1.1',
                     'status': ['preview'],
                     'supported_by': 'PowerVC'}
 
 
-DOCUMENTATION = """
+DOCUMENTATION = '''
 ---
 module: scp
 author:
     - Yogita Garani (@yogita.garani1)
-short_description: Copy files to PowerVC Controller using SCP
+short_description: Copy files to PowerVC Controller using SFTP
 description:
-  - This module copies files from the Ansible controller to the PowerVC Controller using SCP
-  - Supports both file and directory transfers
+  - This module copies files from the Ansible controller to the PowerVC Controller
+    using Paramiko's SFTP — no subprocess, password never on the command line.
+  - Supports both single-file and recursive directory transfers.
 options:
   login_host:
     description:
@@ -21,47 +23,47 @@ options:
     type: str
   login_user:
     description:
-      - SSH User (pvcroot)
+      - SSH user (C(pvcroot))
     required: true
     type: str
   login_password:
     description:
-      - Password for the ssh user
+      - Password for the SSH user
     required: true
     type: str
+    no_log: true
   source:
     description:
-      - Source file or directory path on Ansible controller
+      - Source file or directory path on the Ansible controller
     required: true
     type: str
   destination:
     description:
-      - Destination path on PowerVC Controller
+      - Destination path on the PowerVC Controller
     required: true
     type: str
   recursive:
     description:
-      - Recursively copy directories
+      - Recursively copy directories (required when C(source) is a directory)
     required: false
     type: bool
     default: false
-  state:
+  login_port:
     description:
-      - State of scp operation, always present
-    type: str
-    default: present
-"""
+      - SSH port on the PowerVC Controller
+    required: false
+    type: int
+    default: 22
+'''
 
-EXAMPLES = """
----
-- name: "Copy file to PowerVC"
+EXAMPLES = '''
+- name: Copy file to PowerVC
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Copy a file to PowerVC Controller"
+    - name: Copy a single file to PowerVC Controller
       ibm.powervc.cli.scp:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
@@ -70,19 +72,18 @@ EXAMPLES = """
         destination: "/remote/path/file.txt"
       register: result
 
-    - name: "Show SCP result"
+    - name: Display SCP result
       debug:
         var: result
 
 
-- name: "Copy directory to PowerVC"
+- name: Copy directory to PowerVC
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Copy a directory to PowerVC Controller"
+    - name: Copy a directory recursively to PowerVC Controller
       ibm.powervc.cli.scp:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
@@ -92,19 +93,18 @@ EXAMPLES = """
         recursive: true
       register: result
 
-    - name: "Show SCP result"
+    - name: Display directory copy result
       debug:
         var: result
 
 
-- name: "Copy backup file to PowerVC"
+- name: Copy backup archive to PowerVC
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Copy backup archive to PowerVC"
+    - name: Copy backup tarball to PowerVC backups directory
       ibm.powervc.cli.scp:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
@@ -113,105 +113,146 @@ EXAMPLES = """
         destination: "/powervchome/backups/"
       register: result
 
-    - name: "Show SCP result"
+    - name: Display backup copy result
       debug:
         var: result
-"""
-from ansible.module_utils.basic import AnsibleModule
-import pexpect
+'''
+
+RETURN = '''
+changed:
+  description: Whether the file was successfully copied
+  returned: always
+  type: bool
+source:
+  description: Source path that was copied
+  returned: always
+  type: str
+destination:
+  description: Destination path on the remote host
+  returned: always
+  type: str
+bytes_transferred:
+  description: Total bytes transferred (files only; 0 for directories)
+  returned: success
+  type: int
+'''
+
 import os
+import paramiko
+from ansible.module_utils.basic import AnsibleModule
 
 
-def run_scp():
-    """
-    Read all arguments from the ansible module and execute SCP from the Ansible controller
-    """
-    module = AnsibleModule(
-        argument_spec=dict(
-            state=dict(type='str', required=False, choices=[
-                       'present'], default='present'),
-            login_host=dict(type='str', required=True),
-            login_user=dict(type='str', required=True),
-            login_password=dict(type='str', required=True, no_log=True),
-            source=dict(type='str', required=True),
-            destination=dict(type='str', required=True),
-            recursive=dict(type='bool', required=False, default=False),
-        )
-    )
+def _sftp_put_file(sftp, local_path, remote_path):
+    '''Upload a single file and return bytes transferred.'''
+    sftp.put(local_path, remote_path)
+    return os.path.getsize(local_path)
 
+
+def _sftp_mkdir_p(sftp, remote_dir):
+    '''Create remote directory and all missing parents (like mkdir -p).'''
+    parts = remote_dir.replace('\\', '/').split('/')
+    current = ''
+    for part in parts:
+        if not part:
+            current = '/'
+            continue
+        current = current.rstrip('/') + '/' + part
+        try:
+            sftp.stat(current)
+        except IOError:
+            sftp.mkdir(current)
+
+
+def _sftp_put_dir(sftp, local_dir, remote_dir):
+    '''Recursively upload a directory tree. Returns total bytes transferred.'''
+    _sftp_mkdir_p(sftp, remote_dir)
+    total = 0
+    for entry in os.listdir(local_dir):
+        local_entry = os.path.join(local_dir, entry)
+        remote_entry = remote_dir.rstrip('/') + '/' + entry
+        if os.path.isdir(local_entry):
+            total += _sftp_put_dir(sftp, local_entry, remote_entry)
+        else:
+            total += _sftp_put_file(sftp, local_entry, remote_entry)
+    return total
+
+
+def run_scp(module):
+    '''Transfer files to PowerVC using Paramiko SFTP (no subprocess, no pexpect).'''
     host_ip = module.params['login_host']
     user = module.params['login_user']
     password = module.params['login_password']
     source = module.params['source']
     destination = module.params['destination']
     recursive = module.params['recursive']
+    port = module.params['login_port']
 
-    # Check if source exists
     if not os.path.exists(source):
-        module.fail_json(msg=f"Source path does not exist: {source}", rc=1)
+        module.fail_json(msg=f"Source path does not exist: {source}")
 
-    # Check if source is a directory and recursive is not set
     if os.path.isdir(source) and not recursive:
         module.fail_json(
-            msg=f"Source is a directory but recursive is not set: {source}", rc=1)
-
-    # Construct SCP command
-    host_key_ignore = "-O -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-    recursive_flag = "-r" if recursive else ""
-    scp_command = f"scp {host_key_ignore} {recursive_flag} {source} {user}@{host_ip}:{destination}".strip()
-
-    try:
-        # Execute SCP command using pexpect for password handling
-        child = pexpect.spawn(scp_command, timeout=300)
-
-        # Expect password prompt and send password
-        # Match pattern like "(user@ip) Password:"
-        i = child.expect([r'Password:', pexpect.EOF, pexpect.TIMEOUT])
-
-        if i == 0:
-            # Password prompt received, send password
-            child.sendline(password)
-            child.expect(pexpect.EOF)
-        elif i == 2:
-            module.fail_json(msg="SCP operation timed out", rc=1)
-
-        # Get exit status
-        child.close()
-        exit_code = child.exitstatus if child.exitstatus is not None else 0
-
-        result = dict(
-            changed=False,
-            failed=False,
-            rc=exit_code,
-            msg='',
-            source=source,
-            destination=destination
+            msg=f"Source is a directory but recursive=false: {source}"
         )
 
-        if exit_code == 0:
-            result['msg'] = f"Successfully copied {source} to {user}@{host_ip}:{destination}"
-            result['failed'] = False
-            result['changed'] = True
+    if module.check_mode:
+        module.exit_json(
+            changed=True,
+            msg=f"[CHECK MODE] Would copy {source} to {host_ip}:{destination}",
+            source=source,
+            destination=destination,
+            bytes_transferred=0
+        )
+
+    transport = None
+    try:
+        transport = paramiko.Transport((host_ip, port))
+        transport.connect(username=user, password=password)
+        sftp = paramiko.SFTPClient.from_transport(transport)
+
+        if os.path.isdir(source):
+            bytes_sent = _sftp_put_dir(sftp, source, destination)
         else:
-            result['msg'] = f"Failed to copy {source} to {user}@{host_ip}:{destination}"
-            result['failed'] = True
-            result['changed'] = False
+            bytes_sent = _sftp_put_file(sftp, source, destination)
 
-        module.exit_json(**result)
+        sftp.close()
 
-    except pexpect.exceptions.TIMEOUT:
-        module.fail_json(msg="SCP operation timed out", rc=1)
-    except pexpect.exceptions.EOF:
-        module.fail_json(msg="Unexpected end of SCP process", rc=1)
+    except paramiko.AuthenticationException as e:
+        module.fail_json(msg=f"SSH authentication failed: {e}")
+    except paramiko.SSHException as e:
+        module.fail_json(msg=f"SSH error during transfer: {e}")
+    except IOError as e:
+        module.fail_json(msg=f"File transfer error: {e}")
     except Exception as e:
-        module.fail_json(msg=f"SCP operation failed: {str(e)}", rc=1)
+        module.fail_json(msg=f"Unexpected error during transfer: {e}")
+    finally:
+        if transport is not None:
+            transport.close()
+
+    module.exit_json(
+        changed=True,
+        msg=f"Successfully copied {source} to {user}@{host_ip}:{destination}",
+        source=source,
+        destination=destination,
+        bytes_transferred=bytes_sent
+    )
 
 
 def main():
-    """
-    Main execution
-    """
-    run_scp()
+    module = AnsibleModule(
+        argument_spec=dict(
+            login_host=dict(type='str', required=True),
+            login_user=dict(type='str', required=True),
+            login_password=dict(type='str', required=True, no_log=True),
+            source=dict(type='str', required=True),
+            destination=dict(type='str', required=True),
+            recursive=dict(type='bool', required=False, default=False),
+            login_port=dict(type='int', required=False, default=22),
+        ),
+        supports_check_mode=True
+    )
+
+    run_scp(module)
 
 
 if __name__ == '__main__':

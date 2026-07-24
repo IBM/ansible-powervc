@@ -1,17 +1,21 @@
 #!/usr/bin/python
+
 ANSIBLE_METADATA = {'metadata_version': '1.1',
                     'status': ['preview'],
                     'supported_by': 'PowerVC'}
 
 
-DOCUMENTATION = """
+DOCUMENTATION = '''
 ---
 module: configure
 author:
     - Yogita Garani (@yogita.garani1)
 short_description: Configure PowerVC
 description:
-  - This module performs configure operation on the PowerVC Controller
+  - This module performs a configure operation on the PowerVC Controller.
+  - If the configure output indicates the cluster is already configured
+    (contains C(already configured) or C(no changes)), the module reports
+    C(changed=False) so playbook runs remain idempotent.
 options:
   login_host:
     description:
@@ -20,148 +24,202 @@ options:
     type: str
   login_user:
     description:
-      - SSH User (pvcroot)
+      - SSH user (C(pvcroot))
     required: true
     type: str
   login_password:
     description:
-      - Password for the ssh user
+      - Password for the SSH user
     required: true
     type: str
+    no_log: true
   cluster:
     description:
-      - Cluster Name
+      - Cluster name to configure
     required: true
     type: str
   validate:
     description:
-      - Validate post configure
-    type: boolean
+      - Validate after configure (C(-pv) flag)
+    type: bool
   force:
     description:
-      - Force configure PowerVC
-    type: boolean
+      - Force configure PowerVC (C(-f) flag)
+    type: bool
   verbose:
     description:
-      - Configure PowerVC with verbose logging
-    type: boolean
-"""
+      - Configure PowerVC with verbose logging (C(-v) flag)
+    type: bool
+'''
 
-EXAMPLES = """
-- name: "Ansible SDK PowerVC CLI Example"
+EXAMPLES = '''
+- name: Configure PowerVC
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Configure PowerVC"
+    - name: Run configure on the cluster
       ibm.powervc.cli.configure:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
         cluster: "{{ cluster_name }}"
       register: result
-    - name: "Show stdout"
+
+    - name: Display configure output
       debug:
         var: result
 
 
-- name: "Ansible SDK PowerVC CLI Example"
+- name: Configure PowerVC with validation
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Configure PowerVC and validate"
+    - name: Run configure and validate
       ibm.powervc.cli.configure:
-        validate: True
+        validate: true
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
         cluster: "{{ cluster_name }}"
       register: result
-    - name: "Show stdout"
+
+    - name: Display validate configure output
       debug:
         var: result
 
 
-- name: "Ansible SDK PowerVC CLI Example"
+- name: Configure PowerVC in verbose mode
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Configure PowerVC in verbose mode"
+    - name: Run configure with verbose logging
       ibm.powervc.cli.configure:
-        verbose: True
+        verbose: true
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
         cluster: "{{ cluster_name }}"
       register: result
-    - name: "Show stdout"
+
+    - name: Display verbose configure output
       debug:
         var: result
 
 
-- name: "Ansible SDK PowerVC CLI Example"
+- name: Force configure PowerVC
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Force Configure PowerVC"
+    - name: Run force configure
       ibm.powervc.cli.configure:
-        force: True
+        force: true
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
         cluster: "{{ cluster_name }}"
       register: result
-    - name: "Show stdout"
+
+    - name: Display force configure output
       debug:
         var: result
-"""
+'''
 
-from ansible_collections.ibm.powervc.plugins.module_utils.connection \
-    import Connection
-from ansible_collections.ibm.powervc.plugins.module_utils.errors import CLIError
+RETURN = '''
+changed:
+  description: >
+    Whether the configure operation was performed.
+    C(false) when the cluster was already configured (no changes made).
+  returned: always
+  type: bool
+stdout:
+  description: Raw command output as a single string
+  returned: always
+  type: str
+stdout_lines:
+  description: Command output split into lines
+  returned: always
+  type: list
+  elements: str
+msg:
+  description: Human-readable status message
+  returned: always
+  type: str
+'''
+
 from ansible.module_utils.basic import AnsibleModule
+from ansible_collections.ibm.powervc.plugins.module_utils.connection import Connection
 
 
-def construct_command(cluster_name, validate=None, force=None, verbose=None):
-    """
-    Construct the command based on the parameters
-
-    :param str cluster_name: cluster name
-    :param str validate: Validate after configure
-    :param str force: Force configure
-    :param str verbose: Configure in verbose mode
-    :return str, dict command, messages: Return the constructed command and its messages
-    """
-    messages = {}
-    command = None
-    if force is not None:
-        command = f"powervc-opsmgr configure -c {cluster_name} -f"
-    elif verbose is not None:
-        command = f"powervc-opsmgr configure -c {cluster_name} -v"
-    elif validate is not None:
-        command = f"powervc-opsmgr configure -c {cluster_name} -pv"
-    else:
-        command = f"powervc-opsmgr configure -c {cluster_name}"
-    return command, messages
-
-# Execution
+def build_command(cluster_name, validate=None, force=None, verbose=None):
+    '''Construct the powervc-opsmgr configure command'''
+    if force:
+        return f"powervc-opsmgr configure -c {cluster_name} -f"
+    if verbose:
+        return f"powervc-opsmgr configure -c {cluster_name} -v"
+    if validate:
+        return f"powervc-opsmgr configure -c {cluster_name} -pv"
+    return f"powervc-opsmgr configure -c {cluster_name}"
 
 
-def run_cli_command():
-    """
-    Read all arguments from the ansible module and execute the command on the controller
-    """
+_ALREADY_CONFIGURED_PHRASES = ("already configured", "no changes")
+
+
+def run_configure(module):
+    '''Execute the configure command on the PowerVC controller'''
+    host_ip = module.params['login_host']
+    user = module.params['login_user']
+    password = module.params['login_password']
+    cluster_name = module.params['cluster']
+    validate = module.params['validate']
+    verbose = module.params['verbose']
+    force = module.params['force']
+
+    command = build_command(cluster_name, validate, force, verbose)
+
+    # check_mode: report what would run without touching the system
+    if module.check_mode:
+        module.exit_json(
+            changed=False,
+            stdout="",
+            stdout_lines=[],
+            msg=f"[CHECK MODE] Would configure cluster {cluster_name}"
+        )
+
+    connection = Connection(module, host_ip, user, password, command=command)
+
+    try:
+        rc, output = connection.run()
+    except Exception as e:
+        module.fail_json(msg=str(e))
+
+    if int(rc) != 0:
+        stderr_msg = "\n".join(output) if isinstance(output, list) else str(output)
+        module.fail_json(msg="Configure operation did not complete successfully", stderr=stderr_msg)
+
+    lines = output if isinstance(output, list) else [str(output)]
+    stdout = "\n".join(lines)
+
+    # Idempotency: if the cluster was already configured, report no change
+    lower = stdout.lower()
+    already = any(phrase in lower for phrase in _ALREADY_CONFIGURED_PHRASES)
+
+    module.exit_json(
+        changed=not already,
+        stdout=stdout,
+        stdout_lines=lines,
+        msg="Configure operation completed successfully"
+    )
+
+
+def main():
     module = AnsibleModule(
         argument_spec=dict(
             login_host=dict(type='str', required=True),
@@ -171,64 +229,11 @@ def run_cli_command():
             validate=dict(type='bool', required=False),
             verbose=dict(type='bool', required=False),
             force=dict(type='bool', required=False),
-            state=dict(type='str', required=False, default='present'),
-        )
+        ),
+        supports_check_mode=True
     )
-    host_ip = module.params['login_host']
-    user = module.params['login_user']
-    password = module.params['login_password']
-    validate = module.params['validate']
-    verbose = module.params['verbose']
-    force = module.params['force']
-    cluster_name = module.params['cluster']
 
-    command, messages = construct_command(cluster_name, validate, force, verbose)
-
-    output = None
-    changed = False
-
-    if command is None and not messages:
-        module.fail_json(failed=True, msg="Wrong arguments")
-
-    connection = Connection(module, host_ip, user, password, command=command, messages=messages)
-    try:
-        rc, output = connection.run()
-        if int(rc) != 0:
-            changed = False
-            failed = True
-        else:
-            changed = True
-            failed = False
-    except (CLIError, Exception) as e:
-        msg = str(e)
-        module.fail_json(msg=msg)
-    result = dict(
-        changed=False,
-        failed=True,
-        warning=False,
-        stdout_lines="",
-        error="",
-        rc=1,
-        msg=''
-    )
-    result['changed'] = changed
-    result['failed'] = failed
-    result['rc'] = int(rc)
-
-    if output and rc == 0:
-        result['stdout_lines'] = output
-        result['msg'] = "Configure operation completed successfully"
-    else:
-        result['warning'] = output
-        result['msg'] = "Configure operation did not complete successfully"
-    module.exit_json(**result)
-
-
-def main():
-    """
-    Main execution
-    """
-    run_cli_command()
+    run_configure(module)
 
 
 if __name__ == '__main__':

@@ -1,17 +1,20 @@
 #!/usr/bin/python
+
 ANSIBLE_METADATA = {'metadata_version': '1.1',
                     'status': ['preview'],
                     'supported_by': 'PowerVC'}
 
 
-DOCUMENTATION = """
+DOCUMENTATION = '''
 ---
 module: locale
 author:
     - Fredolin B Brone (@Fredolin-B-Brone1)
-short_description: Run chpvc locale utility
+short_description: Manage PowerVC locale settings
 description:
-  - This module modifies and shows the locale
+  - This module shows and modifies the locale on the PowerVC Controller
+  - When C(locale_name) is omitted, the current locale is returned without changes
+  - When C(locale_name) is provided, the locale is changed only if it differs from the current value (idempotent)
 options:
   login_host:
     description:
@@ -20,68 +23,75 @@ options:
     type: str
   login_user:
     description:
-      - SSH User (pvcroot)
+      - SSH user (C(pvcroot))
     required: true
     type: str
   login_password:
     description:
-      - Password for the ssh user
+      - Password for the SSH user
     required: true
     type: str
-  state:
-    description:
-      - Modifies or shows the locale
-    required: true
-    type: str
+    no_log: true
   locale_name:
     description:
-      - Changes locale to the given value if the current locale is different
-"""
+      - Target locale name (e.g. C(zh_SG.gbk) or C(en_US.UTF-8))
+      - When omitted, the module only reports the currently enabled locale
+    type: str
+'''
 
-EXAMPLE = """
----
-- name: Run chpvc locale utility
+EXAMPLES = '''
+- name: Show current locale
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Show current locale"
+    - name: Get current locale setting
       ibm.powervc.cli.locale:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
-        state: "present"
       register: result
 
-    - name: "Display command output"
+    - name: Display current locale
       debug:
         var: result.stdout_lines
 
 
----
-- name: Run chpvc locale utility
+- name: Modify locale
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Modify locale"
+    - name: Set locale to zh_SG.gbk
       ibm.powervc.cli.locale:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
-        state: "present"
         locale_name: "zh_SG.gbk"
       register: result
 
-    - name: "Display command output"
+    - name: Display locale change result
       debug:
         var: result.stdout_lines
+'''
 
-"""
+RETURN = '''
+changed:
+  description: Whether the locale was changed
+  returned: always
+  type: bool
+stdout:
+  description: Raw command output as a single string
+  returned: always
+  type: str
+stdout_lines:
+  description: Command output split into lines
+  returned: always
+  type: list
+  elements: str
+'''
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.ibm.powervc.plugins.module_utils.connection import Connection
@@ -171,63 +181,11 @@ def list_locales(module, host, user, password):
     return clean_lines(lines)
 
 
-def handle_list(module, host, user, password):
-    locales = list_locales(module, host, user, password)
-    return result_ok(locales)
-
-
-def handle_enabled(module, host, user, password):
-    stdout, _ = run_cmd(module, host, user, password, "chpvc locale enabled")
-
-    current = extract_enabled_locale(stdout)
-    if current:
-        return result_ok([current])
-
-    return result_ok(["No enabled locale found"])
-
-
-def handle_modify(module, host, user, password, locale_name):
-    stdout, _ = run_cmd(module, host, user, password, "chpvc locale enabled")
-    current_raw = extract_enabled_locale(stdout)
-    valid_locales = list_locales(module, host, user, password)
-    current_canonical = canonicalize_locale(current_raw, valid_locales)
-    requested_canonical = canonicalize_locale(locale_name, valid_locales)
-
-    if not requested_canonical:
-        module.fail_json(
-            msg=f"Invalid locale: {locale_name}",
-            valid_locales=valid_locales
-        )
-
-    if normalize_locale(current_canonical) == normalize_locale(requested_canonical):
-        return result_ok(
-            [f"Locale already set to {current_canonical}"],
-            changed=False
-        )
-
-    run_cmd(
-        module,
-        host,
-        user,
-        password,
-        f"chpvc locale modify {requested_canonical}"
-    )
-
-    return result_ok(
-        [f"Locale updated to {requested_canonical}"],
-        changed=True
-    )
-
-
 def handle_locale(module):
     host = module.params["login_host"]
     user = module.params["login_user"]
     password = module.params["login_password"]
-    state = module.params["state"]
     locale_name = module.params.get("locale_name")
-
-    if state != "present":
-        module.fail_json(msg="Only 'present' state is supported")
 
     stdout, _ = run_cmd(module, host, user, password, "chpvc locale enabled")
     current_raw = extract_enabled_locale(stdout)
@@ -255,6 +213,12 @@ def handle_locale(module):
             changed=False
         )
 
+    if module.check_mode:
+        return result_ok(
+            [f"[CHECK MODE] Would update locale to {requested_canonical}"],
+            changed=True
+        )
+
     run_cmd(
         module,
         host,
@@ -275,10 +239,9 @@ def main():
             login_host=dict(type="str", required=True),
             login_user=dict(type="str", required=True),
             login_password=dict(type="str", required=True, no_log=True),
-            state=dict(type="str", required=True, choices=["present"]),
             locale_name=dict(type="str")
         ),
-        supports_check_mode=False
+        supports_check_mode=True
     )
 
     result = handle_locale(module)

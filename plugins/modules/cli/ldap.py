@@ -1,17 +1,18 @@
 #!/usr/bin/python
+
 ANSIBLE_METADATA = {'metadata_version': '1.1',
                     'status': ['preview'],
                     'supported_by': 'PowerVC'}
 
 
-DOCUMENTATION = """
+DOCUMENTATION = '''
 ---
 module: ldap
 author:
     - Fredolin B Brone (@Fredolin-B-Brone1)
-short_description: Displays PowerVC LDAP Configuration
+short_description: Display PowerVC LDAP configuration
 description:
-  - This module displays LDAP configurations for PowerVC
+  - This module displays LDAP configuration for the PowerVC Controller.
 options:
   login_host:
     description:
@@ -30,19 +31,19 @@ options:
     type: str
   json_format:
     description:
-      - Displays LDAP configurations in json format
-    required: true
+      - When C(true), display LDAP configuration in JSON format.
+    required: false
     type: bool
-"""
+    default: false
+'''
 
-EXAMPLE = """
----
-- name: Check and display LDAP config status on a PowerVC node.
+EXAMPLES = '''
+- name: "Display LDAP config without JSON formatting"
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
+  tasks:
     - name: "Display without json formatting"
       ibm.powervc.cli.ldap:
         login_host: "{{ ipaddress }}"
@@ -50,18 +51,15 @@ EXAMPLE = """
         login_password: "{{ pvcroot_password }}"
         json_format: false
       register: result
-
-    - name: Show pvcldap output
+    - name: "Show pvcldap output"
       debug:
         var: result.stdout_lines
 
----
-- name: Check and display LDAP config status on a PowerVC node.
+- name: "Display LDAP config in JSON format"
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
     - name: "Display in json format"
       ibm.powervc.cli.ldap:
@@ -70,12 +68,26 @@ EXAMPLE = """
         login_password: "{{ pvcroot_password }}"
         json_format: true
       register: result
-
-    - name: Show pvcldap output
+    - name: "Show pvcldap output"
       debug:
         var: result.stdout_lines
+'''
 
-"""
+RETURN = '''
+changed:
+  description: Always false — this module is read-only.
+  returned: always
+  type: bool
+stdout:
+  description: Raw command output.
+  returned: always
+  type: str
+stdout_lines:
+  description: Command output split into lines.
+  returned: always
+  type: list
+  elements: str
+'''
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.ibm.powervc.plugins.module_utils.connection import Connection
@@ -85,6 +97,8 @@ def run_cmd(module, login_host, login_user, login_password, cmd):
     conn = Connection(module, login_host, login_user,
                       login_password, command=cmd)
     rc, out = conn.run()
+    if rc != 0:
+        module.fail_json(msg=f"Command failed: {cmd}", stderr=out, changed=False)
     if isinstance(out, list):
         stdout = "\n".join(out)
         lines = out
@@ -135,9 +149,9 @@ def main():
             login_host=dict(type="str", required=True),
             login_user=dict(type="str", required=True),
             login_password=dict(type="str", required=True, no_log=True),
-            json_format=dict(type="bool", required=True),
+            json_format=dict(type="bool", required=False, default=False),
         ),
-        supports_check_mode=False
+        supports_check_mode=True
     )
 
     result = handle_ldap(module)

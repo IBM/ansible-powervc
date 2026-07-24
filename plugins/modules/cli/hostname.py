@@ -1,17 +1,18 @@
 #!/usr/bin/python
+
 ANSIBLE_METADATA = {'metadata_version': '1.1',
                     'status': ['preview'],
                     'supported_by': 'PowerVC'}
 
 
-DOCUMENTATION = """
+DOCUMENTATION = '''
 ---
 module: hostname
 author:
     - Fredolin B Brone (@Fredolin-B-Brone1)
-short_description: Manage Hostname
+short_description: Manage hostname on the PowerVC Controller
 description:
-  - This module displays and modifies hostname
+  - This module displays and modifies the hostname of the PowerVC Controller.
 options:
   login_host:
     description:
@@ -30,23 +31,39 @@ options:
     type: str
   state:
     description:
-      - Display or modify hostname
+      - Use C(show) to display the current hostname. Use C(modify) to change it.
     required: true
     type: str
+    choices: ['show', 'modify']
   new_hostname:
     description:
-      - New hostname to be set
+      - New hostname to set. Required when C(state=modify).
     type: str
-"""
+'''
 
-EXAMPLE = """
----
-- name: "Manage PowerVC Hostname"
+EXAMPLES = '''
+- name: "Show hostname"
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
+  tasks:
+    - name: "Show the hostname"
+      ibm.powervc.cli.hostname:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "show"
+      register: result
+    - name: "Show command output"
+      debug:
+        var: result.stdout_lines
 
+- name: "Modify hostname"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
   tasks:
     - name: "Modify hostname"
       ibm.powervc.cli.hostname:
@@ -56,32 +73,26 @@ EXAMPLE = """
         state: "modify"
         new_hostname: "{{ value }}"
       register: result
-
     - name: "Show command output"
       debug:
         var: result.stdout_lines
+'''
 
----
-- name: "Manage PowerVC Hostname"
-  hosts: localhost
-  vars_files:
-    - ../vars/powervc.yml
-    - ../vars/secret.yml
-
-  tasks:
-    - name: "Show the hostname"
-      ibm.powervc.cli.hostname:
-        login_host: "{{ ipaddress }}"
-        login_user: "{{ pvc_user }}"
-        login_password: "{{ pvcroot_password }}"
-        state: "show"
-      register: result
-
-    - name: "Show command output"
-      debug:
-        var: result.stdout_lines
-
-"""
+RETURN = '''
+changed:
+  description: Whether the hostname was modified.
+  returned: always
+  type: bool
+stdout:
+  description: Raw command output.
+  returned: always
+  type: str
+stdout_lines:
+  description: Command output split into lines.
+  returned: always
+  type: list
+  elements: str
+'''
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.ibm.powervc.plugins.module_utils.connection import Connection
 
@@ -148,6 +159,12 @@ def handle_modify(module, login_host, login_user, login_password, new_hostname):
             changed=False
         )
 
+    if module.check_mode:
+        return result_ok(
+            [f"[CHECK MODE] Would update hostname to {new_hostname}"],
+            changed=True
+        )
+
     run_cmd(
         module,
         login_host,
@@ -174,7 +191,7 @@ def main():
         required_if=[
             ("state", "modify", ["new_hostname"])
         ],
-        supports_check_mode=False
+        supports_check_mode=True
     )
 
     login_host = module.params["login_host"]

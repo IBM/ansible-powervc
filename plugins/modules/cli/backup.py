@@ -1,17 +1,18 @@
 #!/usr/bin/python
+
 ANSIBLE_METADATA = {'metadata_version': '1.1',
                     'status': ['preview'],
                     'supported_by': 'PowerVC'}
 
 
-DOCUMENTATION = """
+DOCUMENTATION = '''
 ---
 module: backup
 author:
     - Yogita Garani (@yogita.garani1)
 short_description: Take a backup on PowerVC
 description:
-  - This module performs backup operation on the PowerVC Controller
+  - This module performs a backup operation on the PowerVC Controller.
 options:
   login_host:
     description:
@@ -33,30 +34,27 @@ options:
       - Cluster Name
     required: true
     type: str
-  state:
-    description:
-      - State of backup, always present
-    type: str
   preserve:
     description:
-      - Number of previous backups to preserve during cleanup
+      - Number of previous backups to preserve during cleanup.
     type: int
   mode:
     description:
-      - Mode of logging (silent or verbose)
+      - Mode of logging. Use C(silent) to suppress output or C(verbose) for
+        detailed output.
     type: str
-"""
+    choices: ['silent', 'verbose']
+    default: silent
+'''
 
-EXAMPLES = """
----
-- name: "PowerVC Backup"
+EXAMPLES = '''
+- name: "PowerVC Backup - silent mode"
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Take a backup of the cluster"
+    - name: "Take a backup of the cluster (silent)"
       ibm.powervc.cli.backup:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
@@ -64,71 +62,80 @@ EXAMPLES = """
         cluster: "{{ cluster_name }}"
         mode: "silent"
       register: result
-
-    - name: "Show stdout"
+    - name: "Show output"
       debug:
         var: result
 
-
-- name: "PowerVC Backup"
+- name: "PowerVC Backup - verbose mode"
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Take a backup of the cluster"
+    - name: "Take a backup of the cluster (verbose)"
       ibm.powervc.cli.backup:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
         cluster: "{{ cluster_name }}"
-        mode: verbose
+        mode: "verbose"
       register: result
-    - name: "Show stdout"
+    - name: "Show output"
       debug:
         var: result
 
-
-- name: "PowerVC Backup"
+- name: "PowerVC Backup - with preserve count"
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Take a backup of the cluster"
+    - name: "Take a backup and keep last 3"
       ibm.powervc.cli.backup:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
         cluster: "{{ cluster_name }}"
-        state: present
         preserve: 3
       register: result
-    - name: "Show stdout"
+    - name: "Show output"
       debug:
         var: result
-"""
+'''
+
+RETURN = '''
+changed:
+  description: Whether the backup operation ran and succeeded.
+  returned: always
+  type: bool
+rc:
+  description: Return code from the backup command.
+  returned: always
+  type: int
+stdout_lines:
+  description: Output from the backup command split into lines.
+  returned: success
+  type: list
+  elements: str
+msg:
+  description: Human-readable status message.
+  returned: always
+  type: str
+'''
 
 from ansible_collections.ibm.powervc.plugins.module_utils.connection import Connection
-from ansible_collections.ibm.powervc.plugins.module_utils.errors import CLIError
 from ansible.module_utils.basic import AnsibleModule
 
 
-# Execution
 def construct_command(cluster_name, mode=None, preserve=None):
-    """
-    Construct the command based on the parameters
+    '''
+    Construct the backup command from the given parameters.
 
     :param str cluster_name: cluster name
-    :param str mode: specifies the backup mode
-    :param str preserve: specifies the number of backups to retain
-    :return str, dict command, messages: Return the constructed command and its messages
-    """
-    messages = {
-        r'PEXPECT_NEVER_MATCH': '',
-    }
+    :param str mode: backup mode (silent or verbose)
+    :param int preserve: number of backups to retain
+    :return str|None command: constructed command string
+    '''
     command = None
     if cluster_name:
         command = f"powervc-opsmgr backup -c {cluster_name}"
@@ -137,80 +144,90 @@ def construct_command(cluster_name, mode=None, preserve=None):
         elif mode == "verbose":
             command += " --verbose"
         if preserve is not None:
-            command += f" -b {preserve}"
-    return command, messages
+            command += f" -b {int(preserve)}"
+    return command
 
 
-def run_cli_command():
-    """
-    Read all arguments from the ansible module and execute the command on the controller
-    """
-    module = AnsibleModule(
-        argument_spec=dict(
-            mode=dict(type='str', required=False, choices=[
-                      'silent', 'verbose'], default='silent'),
-            state=dict(type='str', required=False, choices=['present'], default='present'),
-            login_host=dict(type='str', required=True),
-            login_user=dict(type='str', required=True),
-            login_password=dict(type='str', required=True, no_log=True),
-            preserve=dict(type='str', required=False, default=None),
-            cluster=dict(type='str', required=True),
-        )
-    )
+def run_backup(module):
+    '''
+    Execute the backup command on the PowerVC Controller.
+
+    :param module: AnsibleModule instance
+    '''
     mode = module.params['mode']
     host_ip = module.params['login_host']
     user = module.params['login_user']
     password = module.params['login_password']
     preserve = module.params['preserve']
     cluster_name = module.params['cluster']
-    output = None
-    changed = False
-    failed = True
 
-    command, messages = construct_command(cluster_name, mode, preserve)
-    if command is None and not messages:
-        module.fail_json(failed=True, changed=False, msg="Wrong arguments")
+    command = construct_command(cluster_name, mode, preserve)
 
-    connection = Connection(module, host_ip, user,
-                            password, command=command, messages=messages)
+    if command is None:
+        module.fail_json(
+            changed=False,
+            msg="Could not construct backup command — check the 'cluster' parameter"
+        )
+
+    if module.check_mode:
+        module.exit_json(
+            changed=True,
+            msg=f"[CHECK MODE] Would run backup for cluster '{cluster_name}': {command}"
+        )
+
+    connection = Connection(module, host_ip, user, password, command=command)
     try:
         rc, output = connection.run()
-        if int(rc) != 0:
-            changed = False
-            failed = True
-        else:
-            changed = True
-            failed = False
-    except (CLIError, Exception) as e:
-        msg = str(e)
-        module.fail_json(failed=True, msg=msg)
-    result = dict(
-        changed=False,
-        failed=True,
-        warning=False,
-        stdout_lines="",
-        error="",
-        rc=1,
-        msg=''
-    )
-    result['changed'] = changed
-    result['failed'] = failed
-    result['rc'] = int(rc)
+    except Exception as e:
+        module.fail_json(changed=False, msg=str(e))
 
-    if output:
-        result['stdout_lines'] = output
-        result['msg'] = "Backup operation completed successfully"
-    else:
-        result['warning'] = output
-        result['msg'] = "Backup operation did not complete successfully"
-    module.exit_json(**result)
+    # F1: non-zero exit code is a genuine failure — use fail_json so Ansible
+    # marks the task FAILED and triggers block/rescue and failed_when handlers.
+    if int(rc) != 0:
+        module.fail_json(
+            msg="Backup operation failed",
+            rc=int(rc),
+            stderr=output,
+            changed=False
+        )
+
+    # F2: warn (not silently drop) when the command produced no output.
+    if not output:
+        module.warn("Backup command succeeded but returned no output")
+
+    # F4: build the result once from final values — no stale pre-initialisation.
+    module.exit_json(
+        changed=True,
+        failed=False,
+        rc=int(rc),
+        stdout_lines=output if output else [],
+        msg="Backup operation completed successfully"
+    )
 
 
 def main():
-    """
+    '''
     Main execution
-    """
-    run_cli_command()
+    '''
+    # F8: AnsibleModule instantiated in main() and passed to the handler,
+    # matching collection convention and enabling unit testing.
+    module = AnsibleModule(
+        argument_spec=dict(
+            # F7: state removed — it was always 'present' and never branched on
+            mode=dict(type='str', required=False, choices=[
+                      'silent', 'verbose'], default='silent'),
+            login_host=dict(type='str', required=True),
+            login_user=dict(type='str', required=True),
+            login_password=dict(type='str', required=True, no_log=True),
+            # F6: preserve declared as int to match DOCUMENTATION and for safe
+            # embedding in the shell command
+            preserve=dict(type='int', required=False, default=None),
+            cluster=dict(type='str', required=True),
+        ),
+        # F5: write path is guarded by module.check_mode inside run_backup()
+        supports_check_mode=True
+    )
+    run_backup(module)
 
 
 if __name__ == '__main__':

@@ -1,17 +1,20 @@
 #!/usr/bin/python
+
 ANSIBLE_METADATA = {'metadata_version': '1.1',
                     'status': ['preview'],
                     'supported_by': 'PowerVC'}
 
 
-DOCUMENTATION = """
+DOCUMENTATION = '''
 ---
 module: timezone
 author:
     - Fredolin B Brone (@Fredolin-B-Brone1)
-short_description: Mnages timezone operations of PowerVC
+short_description: Manage timezone on the PowerVC Controller
 description:
-  - This module displays and sets timezone
+  - This module displays and sets the timezone on the PowerVC Controller.
+  - Validates the desired timezone against the list of supported timezones
+    before applying it (idempotent — returns C(changed=False) if already set).
 options:
   login_host:
     description:
@@ -30,44 +33,23 @@ options:
     type: str
   state:
     description:
-      - State of timezone operation
+      - Use C(present) to get or set the timezone.
     required: true
     type: str
+    choices: ['present']
   value:
     description:
-      - Timezone value to be set
+      - Timezone identifier to set (e.g. C(UTC), C(America/New_York)).
+        If omitted the current timezone is returned without making changes.
     type: str
-"""
+'''
 
-EXAMPLE = """
----
-- name: "Manage PowerVC timezone commands"
+EXAMPLES = '''
+- name: "Show current timezone"
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
-  tasks:
-    - name: "Set timezone"
-      ibm.powervc.cli.timezone:
-        login_host: "{{ ipaddress }}"
-        login_user: "{{ pvc_user }}"
-        login_password: "{{ pvcroot_password }}"
-        state: "present"
-        value: "{{ timezone_value }}"
-      register: result
-
-    - name: "Show command output"
-      debug:
-        var: result.stdout_lines
-
----
-- name: "Manage PowerVC timezone commands"
-  hosts: localhost
-  vars_files:
-    - ../vars/powervc.yml
-    - ../vars/secret.yml
-
   tasks:
     - name: "Show current timezone"
       ibm.powervc.cli.timezone:
@@ -76,12 +58,44 @@ EXAMPLE = """
         login_password: "{{ pvcroot_password }}"
         state: "present"
       register: result
-
     - name: "Show command output"
       debug:
         var: result.stdout_lines
 
-"""
+- name: "Set timezone"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: "Set timezone to UTC"
+      ibm.powervc.cli.timezone:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "present"
+        value: "UTC"
+      register: result
+    - name: "Show command output"
+      debug:
+        var: result.stdout_lines
+'''
+
+RETURN = '''
+changed:
+  description: Whether the timezone was modified.
+  returned: always
+  type: bool
+stdout:
+  description: Raw command output.
+  returned: always
+  type: str
+stdout_lines:
+  description: Command output split into lines.
+  returned: always
+  type: list
+  elements: str
+'''
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.ibm.powervc.plugins.module_utils.connection import Connection
 import re
@@ -152,6 +166,12 @@ def set_timezone(module, host, user, password, tz):
     if current == tz:
         return result_ok([f"Timezone already set to {tz}"], changed=False)
 
+    if module.check_mode:
+        return result_ok(
+            [f"[CHECK MODE] Would update timezone to {tz}"],
+            changed=True
+        )
+
     run_cmd(module, host, user, password, f"chpvc timezone set-timezone {tz}")
     return result_ok([f"Timezone updated to {tz}"], changed=True)
 
@@ -179,11 +199,10 @@ def main():
             login_host=dict(type="str", required=True),
             login_user=dict(type="str", required=True),
             login_password=dict(type="str", required=True, no_log=True),
-            state=dict(type="str", required=True, choices=[
-                       "supported_list", "present"]),
+            state=dict(type="str", required=True, choices=["present"]),
             value=dict(type="str")
         ),
-        supports_check_mode=False
+        supports_check_mode=True
     )
 
     result = handle_timezone(module)

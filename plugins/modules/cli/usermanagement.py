@@ -1,17 +1,30 @@
 #!/usr/bin/python
+
 ANSIBLE_METADATA = {'metadata_version': '1.1',
                     'status': ['preview'],
                     'supported_by': 'PowerVC'}
 
 
-DOCUMENTATION = """
+DOCUMENTATION = '''
 ---
 module: usermanagement
 author:
     - Fredolin B Brone (@Fredolin-B-Brone1)
 short_description: Manage PowerVC users
 description:
-  - This module creates, removes, modifies, and lists PowerVC users
+  - This module creates, removes, modifies, and lists PowerVC users.
+  - Creation and removal are idempotent — re-creating an existing user or removing
+    a non-existent user returns C(changed=False).
+  - C(action=modify_group) is idempotent — reads the user's current group via
+    C(lspvcuser list) before acting; returns C(changed=False) if the group already
+    matches the desired value.
+  - C(action=update_expiry) is idempotent — reads the user's current expiry via
+    C(lspvcuser list) before acting; returns C(changed=False) if the expiry already
+    matches.
+  - C(action=ch_passwd) can only change the password of the authenticated SSH user
+    (C(login_user == new_user)). It cannot set another user's password non-interactively.
+  - C(action=reset_passwd) resets another user's password to the appliance default.
+    There is no CLI flag to set a specific password for another user non-interactively.
 options:
   login_host:
     description:
@@ -20,17 +33,22 @@ options:
     type: str
   login_user:
     description:
-      - SSH User (pvcroot)
+      - SSH user (C(pvcroot))
     required: true
     type: str
   login_password:
     description:
-      - Password for the ssh user
+      - Password for the SSH user
     required: true
     type: str
+    no_log: true
   state:
     description:
-      - Action to perform (present to create, absent to remove, show to list, modify to change)
+      - Action to perform
+      - C(present) - Create user
+      - C(absent) - Remove user
+      - C(show) - List users
+      - C(modify) - Modify user attributes
     required: true
     type: str
     choices: ['present', 'absent', 'show', 'modify']
@@ -44,21 +62,22 @@ options:
     type: str
   group:
     description:
-      - Restricted shell group user should be added to (pvcsuperadmin, pvcoperator, pvcviewer)
+      - Restricted shell group to add user to (C(pvcsuperadmin), C(pvcoperator), C(pvcviewer))
     type: str
   new_password:
     description:
       - Password for the new user or to change existing user password
-      - Required for state=present and action=ch_passwd
-      - Not required for action=reset_passwd (resets to default password)
+      - Required for C(state=present) and C(action=ch_passwd)
+      - Not required for C(action=reset_passwd) (resets to default password)
     type: str
+    no_log: true
   expiry:
     description:
-      - Expiry of user password (default 1 year, 10000 for never)
+      - Expiry of user password (default 1 year, use C(10000) for never)
     type: str
   silent:
     description:
-      - Silent mode for removal (no confirmation)
+      - Silent mode for removal (no confirmation prompt)
     type: bool
     default: false
   confirm:
@@ -67,7 +86,7 @@ options:
     type: str
   filter:
     description:
-      - Filter for listing users (format key=value, e.g., name=root, uid=1000, groups=adm)
+      - Filter for listing users (format C(key=value), e.g. C(name=root), C(uid=1000), C(groups=adm))
     type: str
   script:
     description:
@@ -76,30 +95,29 @@ options:
     default: false
   fields:
     description:
-      - Fields to display when listing users (name, uid, groups)
+      - Fields to display when listing users (C(name), C(uid), C(groups))
     type: str
   action:
     description:
-      - Specific modify action
-      - ch_passwd - Change your own password (requires new_password)
-      - reset_passwd - Reset another user's password to default (no new_password needed)
-      - modify_group - Change user's group (requires group)
-      - update_expiry - Update password expiry (requires expiry)
+      - Specific modify action.
+      - C(ch_passwd) — Change your own password (requires C(new_password));
+        only valid when C(login_user == new_user).
+      - C(reset_passwd) — Reset another user's password to the appliance default
+        (does not accept a specific new password).
+      - C(modify_group) — Change user group (requires C(group)); idempotent.
+      - C(update_expiry) — Update password expiry (requires C(expiry)); idempotent.
     type: str
     choices: ['ch_passwd', 'reset_passwd', 'modify_group', 'update_expiry']
-"""
+'''
 
-EXAMPLE = """
----
+EXAMPLES = '''
 - name: Create a PowerVC user
   hosts: localhost
-
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Create a user"
+    - name: Create user with group assignment
       ibm.powervc.cli.usermanagement:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
@@ -111,12 +129,18 @@ EXAMPLE = """
         new_password: "{{ pvcroot_password }}"
       register: result
 
-    - name: "Show create user output"
+    - name: Display create user output
       debug:
         var: result.stdout_lines
 
 
-    - name: "Create a user with password expiry"
+- name: Create a PowerVC user with password expiry
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: Create user with expiry days
       ibm.powervc.cli.usermanagement:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
@@ -129,20 +153,18 @@ EXAMPLE = """
         expiry: "{{ expiry_days }}"
       register: result
 
-    - name: "Show create user with expiry output"
+    - name: Display create user with expiry output
       debug:
         var: result.stdout_lines
 
----
+
 - name: Remove a PowerVC user
   hosts: localhost
-
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Remove a user"
+    - name: Remove user with confirmation
       ibm.powervc.cli.usermanagement:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
@@ -154,20 +176,18 @@ EXAMPLE = """
         confirm: "yes"
       register: result
 
-    - name: "Show remove user output"
+    - name: Display remove user output
       debug:
         var: result.stdout_lines
 
----
+
 - name: List PowerVC users
   hosts: localhost
-
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: Lists user information.
+    - name: List all users with filter
       ibm.powervc.cli.usermanagement:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
@@ -178,63 +198,18 @@ EXAMPLE = """
         fields: "{{ lspvcuser_fields }}"
       register: result
 
-    - name: "Show list users output"
+    - name: Display list users output
       debug:
         var: result.stdout_lines
 
 
-    - name: Lists user information.
-      ibm.powervc.cli.usermanagement:
-        login_host: "{{ ipaddress }}"
-        login_user: "{{ pvc_user }}"
-        login_password: "{{ pvcroot_password }}"
-        state: "show"
-        filter: "{{ filter_list }}"
-      register: result
-
-    - name: "Show filtered users output"
-      debug:
-        var: result.stdout_lines
-
-
-    - name: Lists user information in scripts.
-      ibm.powervc.cli.usermanagement:
-        login_host: "{{ ipaddress }}"
-        login_user: "{{ pvc_user }}"
-        login_password: "{{ pvcroot_password }}"
-        state: "show"
-        script: true
-      register: result
-
-    - name: "Show script mode output"
-      debug:
-        var: result.stdout_lines
-
-
-    - name: Lists user information with field value.
-      ibm.powervc.cli.usermanagement:
-        login_host: "{{ ipaddress }}"
-        login_user: "{{ pvc_user }}"
-        login_password: "{{ pvcroot_password }}"
-        state: "show"
-        script: true
-        fields: "name"
-      register: result
-
-    - name: "Show field-specific output"
-      debug:
-        var: result.stdout_lines
-
----
-- name: Chnage a PowerVC user password
+- name: Change a PowerVC user password
   hosts: localhost
-
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Change user password"
+    - name: Change own password
       ibm.powervc.cli.usermanagement:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
@@ -246,53 +221,18 @@ EXAMPLE = """
         new_password: "{{ new_password }}"
       register: result
 
-    - name: "Show password change output"
+    - name: Display password change output
       debug:
         var: result.stdout_lines
 
 
-    - name: "Reset another user's password to default"
-      ibm.powervc.cli.usermanagement:
-        login_host: "{{ ipaddress }}"
-        login_user: "{{ pvc_user }}"
-        login_password: "{{ pvcroot_password }}"
-        state: "modify"
-        action: "reset_passwd"
-        new_user: "{{ new_user }}"
-        cluster: "{{ cluster_name }}"
-      register: result
-
-    - name: "Show reset password output"
-      debug:
-        var: result.stdout_lines
-
-
-    - name: "Update password expiry"
-      ibm.powervc.cli.usermanagement:
-        login_host: "{{ ipaddress }}"
-        login_user: "{{ pvc_user }}"
-        login_password: "{{ pvcroot_password }}"
-        state: "modify"
-        action: "update_expiry"
-        new_user: "{{ new_user }}"
-        cluster: "{{ cluster_name }}"
-        expiry: "{{ expiry_days }}"
-      register: result
-
-    - name: "Show expiry update output"
-      debug:
-        var: result.stdout_lines
-
----
 - name: Modify a PowerVC user group
   hosts: localhost
-
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Modify user group"
+    - name: Change user group assignment
       ibm.powervc.cli.usermanagement:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
@@ -304,17 +244,33 @@ EXAMPLE = """
         group: "{{ modify_group }}"
       register: result
 
-    - name: "Show output"
+    - name: Display group modify output
       debug:
         var: result.stdout_lines
+'''
 
-"""
+RETURN = '''
+changed:
+  description: Whether any user management changes were made
+  returned: always
+  type: bool
+stdout:
+  description: Raw command output as a single string
+  returned: always
+  type: str
+stdout_lines:
+  description: Command output split into lines
+  returned: always
+  type: list
+  elements: str
+'''
+
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.ibm.powervc.plugins.module_utils.connection import Connection
 
 
 def run_cmd(module, login_host, login_user, login_password, cmd, messages=None, check_idempotent=False, handle_errors=False):
-    """Run command via SSH connection"""
+    '''Run command via SSH connection'''
     conn = Connection(module, login_host, login_user,
                       login_password, command=cmd, messages=messages or {})
     rc, out = conn.run()
@@ -348,6 +304,9 @@ def run_cmd(module, login_host, login_user, login_password, cmd, messages=None, 
             if pattern.lower() in stderr_msg.lower():
                 return stderr_msg, out, True
 
+        # Any other non-zero rc with handle_errors — treat as soft error
+        return stderr_msg, out, True
+
     if rc != 0:
         # Convert list to string for stderr
         stderr_msg = "\n".join(out) if isinstance(out, list) else str(out)
@@ -380,7 +339,7 @@ def clean_output(lines):
 
 
 def handle_present(module, login_host, login_user, login_password, new_user, cluster, group, new_password, expiry):
-    """Create a new PowerVC user"""
+    '''Create a new PowerVC user'''
     if not new_user:
         module.fail_json(msg="new_user is required for creating a user")
     if not cluster:
@@ -396,6 +355,9 @@ def handle_present(module, login_host, login_user, login_password, new_user, clu
 
     if expiry:
         cmd += f" -e {expiry}"
+
+    if module.check_mode:
+        return result_ok([f"[CHECK MODE] Would create user {new_user}"], changed=True)
 
     # Use messages dict to handle password prompts
     messages = {
@@ -415,7 +377,7 @@ def handle_present(module, login_host, login_user, login_password, new_user, clu
 
 
 def handle_absent(module, login_host, login_user, login_password, new_user, cluster, silent, confirm):
-    """Remove a PowerVC user"""
+    '''Remove a PowerVC user'''
     if not new_user:
         module.fail_json(msg="new_user is required for removing a user")
     if not cluster:
@@ -424,6 +386,9 @@ def handle_absent(module, login_host, login_user, login_password, new_user, clus
     # Build command
     cmd = f"rmpvcuser -u {new_user} -c {cluster}"
 
+    if module.check_mode:
+        return result_ok([f"[CHECK MODE] Would remove user {new_user}"], changed=True)
+
     # Handle silent mode or interactive confirmation
     messages = {}
 
@@ -431,10 +396,11 @@ def handle_absent(module, login_host, login_user, login_password, new_user, clus
         # Silent mode - use -s flag, no prompts
         cmd += " -s"
     else:
-        # Not silent - handle the confirmation prompt with "yes"
+        # Use caller-supplied confirm value if provided, otherwise default to "yes"
+        confirm_answer = confirm if confirm else "yes"
         messages = {
-            r".*\(yes/no\).*": "yes",
-            r".*yes/no.*": "yes"
+            r".*\(yes/no\).*": confirm_answer,
+            r".*yes/no.*": confirm_answer
         }
 
     _, lines, is_idempotent = run_cmd(
@@ -449,7 +415,7 @@ def handle_absent(module, login_host, login_user, login_password, new_user, clus
 
 
 def handle_show(module, login_host, login_user, login_password, filter_val, script, fields):
-    """List PowerVC users"""
+    '''List PowerVC users'''
     cmd = "lspvcuser list"
 
     if filter_val:
@@ -467,8 +433,28 @@ def handle_show(module, login_host, login_user, login_password, filter_val, scri
     return result_ok(cleaned if cleaned else ["No users found"], changed=False)
 
 
+def _read_user_field(module, login_host, login_user, login_password, new_user, field):
+    '''Read a single field for a user via lspvcuser list.
+
+    Returns the stripped field value string, or None if the command fails or
+    the user cannot be found — callers treat None as "skip idempotency check".
+    Uses handle_errors=True so a non-zero rc is returned as an error flag
+    rather than calling fail_json.
+    '''
+    cmd = f"lspvcuser list --filter name={new_user} --fields {field} --script"
+    _, lines, is_error = run_cmd(module, login_host, login_user, login_password,
+                                 cmd, handle_errors=True)
+    if is_error:
+        return None
+    for line in lines:
+        line = line.strip()
+        if line and not line.startswith("+") and not line.lower().startswith(field):
+            return line
+    return None
+
+
 def handle_modify(module, login_host, login_user, login_password, new_user, cluster, group, new_password, expiry, action):
-    """Modify a PowerVC user (change password or group)"""
+    '''Modify a PowerVC user (change password, group, or expiry)'''
     if not new_user:
         module.fail_json(msg="user is required")
     if not cluster:
@@ -500,6 +486,28 @@ def handle_modify(module, login_host, login_user, login_password, new_user, clus
     if action == "ch_passwd" and not new_password:
         module.fail_json(msg="new_password is required for action 'ch_passwd'")
 
+    # Idempotency: read current state before mutating
+    if action == "modify_group":
+        current_group = _read_user_field(
+            module, login_host, login_user, login_password, new_user, "groups")
+        if current_group is not None and group.lower() in current_group.lower():
+            return result_ok(
+                [f"User {new_user} already in group '{group}' — no change required"],
+                changed=False
+            )
+
+    if action == "update_expiry":
+        current_expiry = _read_user_field(
+            module, login_host, login_user, login_password, new_user, "expiry")
+        if current_expiry is not None and current_expiry.strip() == str(expiry).strip():
+            return result_ok(
+                [f"User {new_user} expiry already '{expiry}' — no change required"],
+                changed=False
+            )
+
+    if module.check_mode:
+        return result_ok([f"[CHECK MODE] Would perform {action} on user {new_user}"], changed=True)
+
     cmd = f"chpvcuser {action} -u {new_user} -c {cluster}"
 
     if action == "modify_group":
@@ -509,9 +517,6 @@ def handle_modify(module, login_host, login_user, login_password, new_user, clus
 
     messages = {}
     if action == "ch_passwd":
-        # Only ch_passwd prompts for password; reset_passwd resets to default automatically
-        # Match the exact prompts from chpvcuser command:
-        # "Enter new password for 'username': " and "Confirm new password: "
         messages = {
             r"Enter new password.*:\s*": new_password,
             r"Confirm.*password.*:\s*": new_password
@@ -553,7 +558,7 @@ def main():
             ("state", "absent", ["new_user", "cluster"]),
             ("state", "modify", ["new_user", "cluster", "action"])
         ],
-        supports_check_mode=False
+        supports_check_mode=True
     )
 
     login_host = module.params["login_host"]

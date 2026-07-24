@@ -1,17 +1,18 @@
 #!/usr/bin/python
+
 ANSIBLE_METADATA = {'metadata_version': '1.1',
                     'status': ['preview'],
                     'supported_by': 'PowerVC'}
 
 
-DOCUMENTATION = """
+DOCUMENTATION = '''
 ---
 module: restore
 author:
     - Yogita Garani (@yogita.garani1)
 short_description: Restore the PowerVC cluster
 description:
-  - This module performs restore operation on the PowerVC Controller
+  - This module performs a restore operation on the PowerVC Controller
 options:
   login_host:
     description:
@@ -20,134 +21,117 @@ options:
     type: str
   login_user:
     description:
-      - SSH User (pvcroot)
+      - SSH user (C(pvcroot))
     required: true
     type: str
   login_password:
     description:
-      - Password for the ssh user
+      - Password for the SSH user
     required: true
     type: str
+    no_log: true
   cluster:
     description:
-      - Cluster Name
+      - Cluster name to restore
     required: true
     type: str
-  state:
-    description:
-      - State of restore, always present
-    type: str
-"""
+'''
 
-EXAMPLES = """
----
-- name: "Restore PowerVC cluster"
+EXAMPLES = '''
+- name: Restore PowerVC cluster
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Restore cluster"
+    - name: Restore the named cluster
       ibm.powervc.cli.restore:
-        state: present
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
         cluster: "{{ cluster_name }}"
       register: result
 
-    - name: "Show stdout"
+    - name: Display restore output
       debug:
         var: result
+'''
 
-"""
+RETURN = '''
+changed:
+  description: Whether the restore operation was performed
+  returned: always
+  type: bool
+stdout:
+  description: Raw command output as a single string
+  returned: always
+  type: str
+stdout_lines:
+  description: Command output split into lines
+  returned: always
+  type: list
+  elements: str
+'''
 
-from ansible_collections.ibm.powervc.plugins.module_utils.connection import Connection
-from ansible_collections.ibm.powervc.plugins.module_utils.errors import CLIError
 from ansible.module_utils.basic import AnsibleModule
+from ansible_collections.ibm.powervc.plugins.module_utils.connection import Connection
 
 
-def construct_command(cluster_name):
-    """
-    Construct the command based on the parameters
-
-    :param str cluster_name: cluster name
-    :return str, dict command, messages: Return the constructed command and its messages
-    """
-    messages = {
-        r"Last successful backup at (.)*(\n)*(\s)*Do you want to continue restoring the backup? [Y/N]:(\s)*": 'y',
-    }
-    command = f'powervc-opsmgr restore -c {cluster_name}'
-    return command, messages
-
-
-def run_cli_command():
-    """
-    Read all arguments from the ansible module and execute the command on the controller
-    """
-    module = AnsibleModule(
-        argument_spec=dict(
-            # Passing the IP as a parameter for now
-            # Optimizations for single-node / multi-node can be made later
-            login_host=dict(type='str', required=True),
-            login_user=dict(type='str', required=True, no_log=True),
-            login_password=dict(type='str', required=True, no_log=True),
-            cluster=dict(type='str', required=True),
-            state=dict(type='str', required=False, default='present'),
-
-        )
-    )
+def run_restore(module):
+    '''Execute the restore command on the PowerVC controller'''
     host_ip = module.params['login_host']
     user = module.params['login_user']
     password = module.params['login_password']
     cluster_name = module.params['cluster']
-    output = None
-    changed = False
-    failed = True
-    command, messages = construct_command(cluster_name)
-    if command is None and not messages:
-        module.fail_json(failed=True, changed=False, msg="Wrong arguments")
-    connection = Connection(module, host_ip, user,
-                            password, command=command, messages=messages)
+
+    # check_mode: restore is destructive — report what would run without acting
+    if module.check_mode:
+        module.exit_json(
+            changed=True,
+            stdout="",
+            stdout_lines=[],
+            msg=f"[CHECK MODE] Would restore cluster {cluster_name}"
+        )
+
+    command = f'powervc-opsmgr restore -c {cluster_name}'
+    messages = {
+        r"Last successful backup at (.)*(\n)*(\s)*Do you want to continue restoring the backup? [Y/N]:(\s)*": 'y',
+    }
+
+    connection = Connection(module, host_ip, user, password,
+                            command=command, messages=messages)
+
     try:
         rc, output = connection.run()
-        if int(rc) != 0:
-            changed = False
-            failed = True
-        else:
-            changed = True
-            failed = False
-    except (CLIError, Exception) as e:
-        msg = str(e)
-        module.fail_json(msg=msg)
-    result = dict(
-        changed=False,
-        failed=True,
-        warning=False,
-        stdout_lines="",
-        error="",
-        rc=1,
-        msg=''
-    )
-    result['changed'] = changed
-    result['failed'] = failed
-    result['rc'] = int(rc)
+    except Exception as e:
+        module.fail_json(msg=str(e))
 
-    if output:
-        result['stdout_lines'] = output
-        result['msg'] = "Restore operation completed successfully"
-    else:
-        result['warning'] = output
-        result['msg'] = "Restore operation did not complete successfully"
-    module.exit_json(**result)
+    if int(rc) != 0:
+        stderr_msg = "\n".join(output) if isinstance(output, list) else str(output)
+        module.fail_json(msg="Restore operation did not complete successfully", stderr=stderr_msg)
+
+    lines = output if isinstance(output, list) else [str(output)]
+
+    module.exit_json(
+        changed=True,
+        stdout="\n".join(lines),
+        stdout_lines=lines,
+        msg="Restore operation completed successfully"
+    )
 
 
 def main():
-    """
-    Main execution
-    """
-    run_cli_command()
+    module = AnsibleModule(
+        argument_spec=dict(
+            login_host=dict(type='str', required=True),
+            login_user=dict(type='str', required=True),
+            login_password=dict(type='str', required=True, no_log=True),
+            cluster=dict(type='str', required=True),
+        ),
+        supports_check_mode=True
+    )
+
+    run_restore(module)
 
 
 if __name__ == '__main__':

@@ -1,10 +1,11 @@
 #!/usr/bin/python
+
 ANSIBLE_METADATA = {'metadata_version': '1.1',
                     'status': ['preview'],
                     'supported_by': 'PowerVC'}
 
 
-DOCUMENTATION = """
+DOCUMENTATION = '''
 ---
 module: pvcmon
 author:
@@ -22,14 +23,15 @@ options:
     type: str
   login_user:
     description:
-      - SSH User (pvcroot)
+      - SSH user (C(pvcroot))
     required: true
     type: str
   login_password:
     description:
-      - Password for the ssh user
+      - Password for the SSH user
     required: true
     type: str
+    no_log: true
   resource:
     description:
       - Resource type to monitor
@@ -40,138 +42,133 @@ options:
     description:
       - Interval in seconds for monitoring updates
       - If not specified, uses default behavior (4 seconds)
-      - Set to 0 for single snapshot
-      - Set to positive integer for continuous monitoring at that interval
+      - Set to C(0) for single snapshot
+      - Set to a positive integer for continuous monitoring at that interval
     type: int
     required: false
-  state:
-    description:
-      - State of monitoring operation (always present)
-    type: str
-    default: present
-"""
+'''
 
-EXAMPLES = """
----
-- name: "Monitor PowerVC Resources"
+EXAMPLES = '''
+- name: Monitor PowerVC disk usage
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: ""Monitor resource usage with specified interval"
+    - name: Get disk usage snapshot
       ibm.powervc.cli.pvcmon:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
-        resource: "{{ resource }}"
-        interval: "{{ interval }}"
+        resource: "disk"
+        interval: 0
       register: result
 
-    - name: "Show monitoring output"
+    - name: Display disk monitoring output
       debug:
         var: result.stdout_lines
 
-"""
+
+- name: Monitor PowerVC memory usage with interval
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: Monitor memory at 5-second intervals
+      ibm.powervc.cli.pvcmon:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        resource: "mem"
+        interval: 5
+      register: result
+
+    - name: Display memory monitoring output
+      debug:
+        var: result.stdout_lines
+'''
+
+RETURN = '''
+changed:
+  description: Whether any changes were made (always false for monitoring operations)
+  returned: always
+  type: bool
+stdout:
+  description: Raw command output as a single string
+  returned: always
+  type: str
+stdout_lines:
+  description: Command output split into lines
+  returned: always
+  type: list
+  elements: str
+'''
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.ibm.powervc.plugins.module_utils.errors import CLIError
 from ansible_collections.ibm.powervc.plugins.module_utils.connection import Connection
 
 
-def construct_command(resource, interval):
-    """
-    Construct the pvcmon command
-
-    :param str resource: Resource type to monitor (disk, proc, mem, swap, inode)
-    :param int interval: Interval in seconds
-    :return str, dict command, messages: Return the constructed command and its messages
-    """
-    messages = {}
-    command = f"pvcmon -r {resource}"
-
-    if interval is not None:
-        command += f" -n {interval}"
-
-    return command, messages
-
-
-def run_cli_command():
-    """
-    Read all arguments from the ansible module and execute the command on the controller
-    """
-    module = AnsibleModule(
-        argument_spec=dict(
-            state=dict(type='str', required=False, choices=[
-                       'present'], default='present'),
-            login_host=dict(type='str', required=True),
-            login_user=dict(type='str', required=True),
-            login_password=dict(type='str', required=True, no_log=True),
-            resource=dict(type='str', required=True, choices=[
-                'disk', 'proc', 'mem', 'swap', 'inode']),
-            interval=dict(type='int', required=False),
-        )
-    )
-
+def run_pvcmon(module):
+    '''Execute the pvcmon command on the PowerVC controller'''
     host_ip = module.params['login_host']
     user = module.params['login_user']
     password = module.params['login_password']
     resource = module.params['resource']
     interval = module.params['interval']
 
-    output = None
-    changed = False
-    failed = True
+    command = f"pvcmon -r {resource}"
+    if interval is not None:
+        command += f" -n {interval}"
 
-    command, messages = construct_command(resource, interval)
-
-    connection = Connection(module, host_ip, user,
-                            password, command=command, messages=messages)
+    connection = Connection(module, host_ip, user, password, command=command)
 
     try:
         rc, output = connection.run()
-        if int(rc) != 0:
-            changed = False
-            failed = True
-        else:
-            changed = False
-            failed = False
-    except (CLIError, Exception) as e:
-        msg = str(e)
-        module.fail_json(failed=True, msg=msg)
+    except Exception as e:
+        module.fail_json(msg=str(e))
 
-    result = dict(
-        changed=False,
-        failed=True,
-        warning=False,
-        stdout_lines="",
-        error="",
-        rc=1,
-        msg=''
-    )
-    result['changed'] = changed
-    result['failed'] = failed
-    result['rc'] = int(rc)
+    if int(rc) != 0:
+        stderr_msg = "\n".join(output) if isinstance(output, list) else str(output)
+        module.fail_json(msg="pvcmon command failed", stderr=stderr_msg)
 
-    if output and not failed:
-        result['stdout_lines'] = output
-        if interval == 0:
-            result['msg'] = f"Successfully retrieved {resource} monitoring snapshot"
-        else:
-            result['msg'] = f"Successfully monitored {resource} usage"
+    lines = output if isinstance(output, list) else [str(output)]
+
+    if interval == 0:
+        msg = f"Successfully retrieved {resource} monitoring snapshot"
     else:
-        result['warning'] = output
-        result['msg'] = f"Failed to monitor {resource} usage"
+        msg = f"Successfully monitored {resource} usage"
 
-    module.exit_json(**result)
+    module.exit_json(
+        changed=False,
+        stdout="\n".join(lines),
+        stdout_lines=lines,
+        msg=msg
+    )
 
 
 def main():
-    """
-    Main execution
-    """
-    run_cli_command()
+    module = AnsibleModule(
+        argument_spec=dict(
+            login_host=dict(type='str', required=True),
+            login_user=dict(type='str', required=True),
+            login_password=dict(type='str', required=True, no_log=True),
+            resource=dict(type='str', required=True, choices=[
+                'disk', 'proc', 'mem', 'swap', 'inode']),
+            interval=dict(type='int', required=False),
+        ),
+        supports_check_mode=True
+    )
+
+    if module.check_mode:
+        module.exit_json(
+            changed=False,
+            stdout="",
+            stdout_lines=[],
+            msg=f"[CHECK MODE] Would monitor {module.params['resource']} usage"
+        )
+
+    run_pvcmon(module)
 
 
 if __name__ == '__main__':

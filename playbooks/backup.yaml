@@ -1,63 +1,62 @@
 ---
-- name: "PowerVC Backup"
+- name: "PowerVC Backup - silent mode"
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
 
   tasks:
-    - name: "Take a backup of the cluster"
+    - name: "Take a backup of the cluster (silent)"
       ibm.powervc.cli.backup:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
         cluster: "{{ cluster_name }}"
-        state: present
         mode: "silent"
       register: result
 
-    - name: "Show stdout"
+    - name: "Show output"
       debug:
         var: result
 
 
-- name: "PowerVC Backup"
+- name: "PowerVC Backup - verbose mode"
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
 
   tasks:
-    - name: "Take a backup of the cluster"
+    - name: "Take a backup of the cluster (verbose)"
       ibm.powervc.cli.backup:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
         cluster: "{{ cluster_name }}"
-        state: present
-        mode: verbose
+        mode: "verbose"
       register: result
-    - name: "Show stdout"
+
+    - name: "Show output"
       debug:
         var: result
 
 
-- name: "PowerVC Backup"
+- name: "PowerVC Backup - with preserve count"
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
 
   tasks:
-    - name: "Take a backup of the cluster"
+    - name: "Take a backup and keep last 3"
       ibm.powervc.cli.backup:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
         cluster: "{{ cluster_name }}"
-        state: present
         preserve: 3
       register: result
-    - name: "Show stdout"
+
+    - name: "Show output"
       debug:
         var: result

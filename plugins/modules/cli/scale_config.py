@@ -1,10 +1,11 @@
 #!/usr/bin/python
+
 ANSIBLE_METADATA = {'metadata_version': '1.1',
                     'status': ['preview'],
                     'supported_by': 'PowerVC'}
 
 
-DOCUMENTATION = """
+DOCUMENTATION = '''
 ---
 module: scale_config
 author:
@@ -20,7 +21,7 @@ notes:
   - This module requires SSH access to the PowerVC controller
   - Scale configuration changes may require service restarts to take effect
   - Settings are applied from /powervcdata/etc/oslo/scale.conf
-  - Use 'state: show' to view current settings without making changes
+  - Use C(state=show) to view current settings without making changes
 options:
   login_host:
     description:
@@ -29,7 +30,7 @@ options:
     type: str
   login_user:
     description:
-      - SSH username (typically 'pvcroot')
+      - SSH username (typically C(pvcroot))
     required: true
     type: str
   login_password:
@@ -44,42 +45,40 @@ options:
       - C(show) - List current scale settings (read-only, no changes made)
       - C(present) - Apply scale settings from scale.conf or set service configuration
       - C(absent) - Revert configuration to state before scale settings were applied
-    required: false
+    required: true
     type: str
     choices: ['show', 'present', 'absent']
-    default: 'show'
-  set_config:
+  service:
     description:
-      - List of service configuration settings to apply
-      - Each item should be in format 'service.parameter=value'
-      - Currently supported service is 'nova-compute-svc'
-      - Common parameters include 'workers' and 'threads'
-      - When provided with C(state: present), sets specific service configurations
-      - When omitted with C(state: present), applies all settings from scale.conf
+      - Service name to configure
     required: false
-    type: list
-    elements: str
-    examples:
-      - "nova-compute-svc.workers=10"
-      - "nova-compute-svc.threads=5"
-"""
+    type: str
+    choices: ['nova-compute-svc']
+  memory_max:
+    description:
+      - MemoryMax value for the service unit
+    required: false
+    type: str
+  host:
+    description:
+      - Novalink host to target
+    required: false
+    type: str
+  restart:
+    description:
+      - Whether to restart the service after applying configuration
+    required: false
+    type: bool
+'''
 
-EXAMPLES = """
----
-- name: Manage PowerVC Scale Configuration
+EXAMPLES = '''
+- name: List current scale configuration
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Information Only"
-      debug:
-        msg:
-          - "This operation may take several minutes."
-          - "Please wait while tasks are running."
-
-    - name: List current scale configuration
+    - name: List current scale settings
       ibm.powervc.cli.scale_config:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
@@ -87,26 +86,18 @@ EXAMPLES = """
         state: show
       register: result
 
-    - name: "Display result"
+    - name: Display scale settings
       debug:
         var: result.stdout_lines
 
 
----
-- name: Manage PowerVC Scale Configuration
+- name: Apply scale settings from scale.conf
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Information Only"
-      debug:
-        msg:
-          - "This operation may take several minutes."
-          - "Please wait while tasks are running."
-
-    - name: Apply scale settings from scale.conf
+    - name: Apply all scale settings
       ibm.powervc.cli.scale_config:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
@@ -114,54 +105,39 @@ EXAMPLES = """
         state: present
       register: result
 
-    - name: "Show result"
+    - name: Display apply result
       debug:
         var: result.stdout_lines
 
 
----
-- name: Manage PowerVC Scale Configuration
+- name: Configure nova-compute-svc
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Information Only"
-      debug:
-        msg:
-          - "This operation may take several minutes."
-          - "Please wait while tasks are running."
-
-    - name: Configure nova-compute-svc
+    - name: Set MemoryMax for nova-compute-svc
       ibm.powervc.cli.scale_config:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
         state: present
-        service: "{{ scale_config_service}}"
+        service: "{{ scale_config_service }}"
         memory_max: "{{ scale_config_memory_max }}"
       register: result
 
-    - debug:
+    - name: Display configure result
+      debug:
         var: result.stdout_lines
 
 
----
-- name: Manage PowerVC Scale Configuration
+- name: Configure nova-compute-svc on specific host
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Information Only"
-      debug:
-        msg:
-          - "This operation may take several minutes."
-          - "Please wait while tasks are running."
-
-    - name: Configure nova-compute-svc on specific host
+    - name: Set MemoryMax for nova-compute-svc on a novalink host
       ibm.powervc.cli.scale_config:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
@@ -172,25 +148,18 @@ EXAMPLES = """
         host: "{{ scale_config_host }}"
       register: result
 
-    - debug:
+    - name: Display host-specific result
+      debug:
         var: result.stdout_lines
 
 
----
-- name: Manage PowerVC Scale Configuration
+- name: Configure nova-compute-svc and restart
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Information Only"
-      debug:
-        msg:
-          - "This operation may take several minutes."
-          - "Please wait while tasks are running."
-
-    - name: Configure nova-compute-svc and restart service
+    - name: Set MemoryMax and restart nova-compute-svc
       ibm.powervc.cli.scale_config:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
@@ -201,25 +170,18 @@ EXAMPLES = """
         restart: true
       register: result
 
-    - debug:
+    - name: Display restart result
+      debug:
         var: result.stdout_lines
 
 
----
-- name: Manage PowerVC Scale Configuration
+- name: Revert scale settings
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Information Only"
-      debug:
-        msg:
-          - "This operation may take several minutes."
-          - "Please wait while tasks are running."
-
-    - name: Revert scale settings
+    - name: Revert all scale configuration
       ibm.powervc.cli.scale_config:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
@@ -227,10 +189,26 @@ EXAMPLES = """
         state: absent
       register: result
 
-    - debug:
+    - name: Display revert result
+      debug:
         var: result.stdout_lines
+'''
 
-"""
+RETURN = '''
+changed:
+  description: Whether the scale configuration was modified
+  returned: always
+  type: bool
+stdout:
+  description: Raw command output as a single string
+  returned: always
+  type: str
+stdout_lines:
+  description: Command output split into lines
+  returned: always
+  type: list
+  elements: str
+'''
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.ibm.powervc.plugins.module_utils.connection import Connection
@@ -326,6 +304,9 @@ def handle_present(module, login_host, login_user, login_password, service, memo
                 )
             )
 
+    if module.check_mode:
+        return result_ok(["[CHECK MODE] Would apply scale configuration"], changed=True)
+
     lines = run_cmd(
         module,
         login_host,
@@ -343,6 +324,9 @@ def handle_present(module, login_host, login_user, login_password, service, memo
 
 
 def handle_absent(module, login_host, login_user, login_password):
+
+    if module.check_mode:
+        return result_ok(["[CHECK MODE] Would revert scale configuration"], changed=True)
 
     cmd = "powervc-scale-config --revert"
 
@@ -383,9 +367,9 @@ def main():
 
             memory_max=dict(type="str"),
             host=dict(type="str"),
-            restart=dict(type="bool")
+            restart=dict(type="bool"),
         ),
-        supports_check_mode=False
+        supports_check_mode=True
     )
 
     login_host = module.params["login_host"]
@@ -408,8 +392,8 @@ def main():
             login_password,
             service,
             memory_max,
-            host,
-            restart
+            restart,
+            host
         )
 
     elif state == "absent":

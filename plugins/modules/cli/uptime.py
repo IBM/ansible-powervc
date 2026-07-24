@@ -1,13 +1,11 @@
 #!/usr/bin/python
-from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.ibm.powervc.plugins.module_utils.errors import CLIError
-from ansible_collections.ibm.powervc.plugins.module_utils.connection import Connection
+
 ANSIBLE_METADATA = {'metadata_version': '1.1',
                     'status': ['preview'],
                     'supported_by': 'PowerVC'}
 
 
-DOCUMENTATION = """
+DOCUMENTATION = '''
 ---
 module: uptime
 author:
@@ -15,7 +13,7 @@ author:
 short_description: Get system uptime from PowerVC Controller
 description:
   - This module retrieves system boot time and uptime information from the PowerVC Controller
-  - Uses 'who -b' command to get the last system boot time
+  - Uses C(who -b) command to get the last system boot time
 options:
   login_host:
     description:
@@ -24,119 +22,102 @@ options:
     type: str
   login_user:
     description:
-      - SSH User (pvcroot)
+      - SSH user (C(pvcroot))
     required: true
     type: str
   login_password:
     description:
-      - Password for the ssh user
+      - Password for the SSH user
     required: true
     type: str
-  state:
-    description:
-      - State of uptime operation (always present)
-    type: str
-    default: present
-"""
+    no_log: true
+'''
 
-EXAMPLES = """
----
-- name: "Get PowerVC Uptime"
+EXAMPLES = '''
+- name: Get PowerVC uptime
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "Get system uptime from PowerVC Controller"
+    - name: Retrieve system boot time from PowerVC Controller
       ibm.powervc.cli.uptime:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
       register: result
 
-    - name: "Show uptime information"
+    - name: Display uptime information
       debug:
         var: result
-"""
+'''
+
+RETURN = '''
+changed:
+  description: Whether any changes were made (always false for uptime queries)
+  returned: always
+  type: bool
+stdout:
+  description: Raw command output as a single string
+  returned: always
+  type: str
+stdout_lines:
+  description: Command output split into lines
+  returned: always
+  type: list
+  elements: str
+'''
+
+from ansible.module_utils.basic import AnsibleModule
+from ansible_collections.ibm.powervc.plugins.module_utils.connection import Connection
 
 
-def construct_command():
-    """
-    Construct the uptime command
-
-    :return str, dict command, messages: Return the constructed command and its messages
-    """
-    messages = {}
-    command = "who -b"
-    return command, messages
-
-
-def run_cli_command():
-    """
-    Read all arguments from the ansible module and execute the command on the controller
-    """
-    module = AnsibleModule(
-        argument_spec=dict(
-            state=dict(type='str', required=False, choices=[
-                       'present'], default='present'),
-            login_host=dict(type='str', required=True),
-            login_user=dict(type='str', required=True),
-            login_password=dict(type='str', required=True, no_log=True),
-        )
-    )
-
+def run_uptime(module):
+    '''Execute the uptime command on the PowerVC controller'''
     host_ip = module.params['login_host']
     user = module.params['login_user']
     password = module.params['login_password']
-    output = None
-    changed = False
-    failed = True
 
-    command, messages = construct_command()
+    connection = Connection(module, host_ip, user, password, command="who -b")
 
-    connection = Connection(module, host_ip, user,
-                            password, command=command, messages=messages)
     try:
         rc, output = connection.run()
-        if int(rc) != 0:
-            changed = False
-            failed = True
-        else:
-            changed = False
-            failed = False
-    except (CLIError, Exception) as e:
-        msg = str(e)
-        module.fail_json(failed=True, msg=msg)
+    except Exception as e:
+        module.fail_json(msg=str(e))
 
-    result = dict(
+    if int(rc) != 0:
+        stderr_msg = "\n".join(output) if isinstance(output, list) else str(output)
+        module.fail_json(msg="Failed to retrieve system uptime information", stderr=stderr_msg)
+
+    lines = output if isinstance(output, list) else [str(output)]
+
+    module.exit_json(
         changed=False,
-        failed=True,
-        warning=False,
-        stdout_lines="",
-        error="",
-        rc=1,
-        msg=''
+        stdout="\n".join(lines),
+        stdout_lines=lines,
+        msg="Successfully retrieved system uptime information"
     )
-    result['changed'] = changed
-    result['failed'] = failed
-    result['rc'] = int(rc)
-
-    if output and not failed:
-        result['stdout_lines'] = output
-        result['msg'] = "Successfully retrieved system uptime information"
-    else:
-        result['warning'] = output
-        result['msg'] = "Failed to retrieve system uptime information"
-
-    module.exit_json(**result)
 
 
 def main():
-    """
-    Main execution
-    """
-    run_cli_command()
+    module = AnsibleModule(
+        argument_spec=dict(
+            login_host=dict(type='str', required=True),
+            login_user=dict(type='str', required=True),
+            login_password=dict(type='str', required=True, no_log=True),
+        ),
+        supports_check_mode=True
+    )
+
+    if module.check_mode:
+        module.exit_json(
+            changed=False,
+            stdout="",
+            stdout_lines=[],
+            msg="[CHECK MODE] Would retrieve system uptime information"
+        )
+
+    run_uptime(module)
 
 
 if __name__ == '__main__':

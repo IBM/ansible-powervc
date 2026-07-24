@@ -1,10 +1,11 @@
 #!/usr/bin/python
+
 ANSIBLE_METADATA = {'metadata_version': '1.1',
                     'status': ['preview'],
                     'supported_by': 'PowerVC'}
 
 
-DOCUMENTATION = """
+DOCUMENTATION = '''
 ---
 module: lspvc
 author:
@@ -13,100 +14,104 @@ short_description: List PowerVC information
 description:
   - This module lists PowerVC information such as hypervisors, uvmid, and PowerVC version
 options:
-  host:
+  login_host:
     description:
       - IP address of the PowerVC Controller
     required: true
     type: str
-  username:
+  login_user:
     description:
-      - SSH User (pvcroot)
+      - SSH user (C(pvcroot))
     required: true
     type: str
-  password:
+  login_password:
     description:
-      - Password for the ssh user
+      - Password for the SSH user
     required: true
     type: str
-  state:
-    description:
-      - Action to perform (present to list information)
-    required: true
-    type: str
-    choices: ['present']
+    no_log: true
   component:
     description:
-      - Component to list (hypervisor, uvmid, or powervc-version)
+      - Component to list
     required: true
     type: str
     choices: ['hypervisor', 'uvmid', 'powervc-version']
-"""
+'''
 
-EXAMPLE = """
----
-- name: "Run lspvc command on PowerVC host"
+EXAMPLES = '''
+- name: List hypervisors on PowerVC
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "List hypervisor"
+    - name: List hypervisor information
       ibm.powervc.cli.lspvc:
-        host: "{{ ipaddress }}"
-        username: "{{ pvc_user }}"
-        password: "{{ pvcroot_password }}"
-        state: "present"
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
         component: "hypervisor"
       register: result
 
-    - name: "Display command output"
+    - name: Display hypervisor output
       debug:
         var: result.stdout_lines
 
----
-- name: "Run lspvc command on PowerVC host"
+
+- name: List UVMIDs on PowerVC
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "List uvmid"
+    - name: List uvmid information
       ibm.powervc.cli.lspvc:
-        host: "{{ ipaddress }}"
-        username: "{{ pvc_user }}"
-        password: "{{ pvcroot_password }}"
-        state: "present"
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
         component: "uvmid"
       register: result
 
-    - name: "Display command output"
+    - name: Display uvmid output
       debug:
         var: result.stdout_lines
 
----
-- name: "Run lspvc command on PowerVC host"
+
+- name: List PowerVC version
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
-
   tasks:
-    - name: "List PowerVC version"
+    - name: List PowerVC version information
       ibm.powervc.cli.lspvc:
-        host: "{{ ipaddress }}"
-        username: "{{ pvc_user }}"
-        password: "{{ pvcroot_password }}"
-        state: "present"
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
         component: "powervc-version"
       register: result
 
-    - name: "Display command output"
+    - name: Display version output
       debug:
         var: result.stdout_lines
+'''
 
-"""
+RETURN = '''
+changed:
+  description: Whether any changes were made (always false for read-only list operations)
+  returned: always
+  type: bool
+stdout:
+  description: Raw command output as a single string
+  returned: always
+  type: str
+stdout_lines:
+  description: Command output split into lines
+  returned: always
+  type: list
+  elements: str
+'''
+
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.ibm.powervc.plugins.module_utils.connection import Connection
 
@@ -141,7 +146,7 @@ def clean_lspvc_output(lines):
     return cleaned
 
 
-def handle_present(module, host, username, password, component):
+def handle_list(module, host, username, password, component):
     valid_components = ["hypervisor", "uvmid", "powervc-version"]
 
     if component not in valid_components:
@@ -163,29 +168,24 @@ def handle_present(module, host, username, password, component):
 def main():
     module = AnsibleModule(
         argument_spec=dict(
-            host=dict(type="str", required=True),
-            username=dict(type="str", required=True),
-            password=dict(type="str", required=True, no_log=True),
-            state=dict(type="str", required=True, choices=["present"]),
+            login_host=dict(type="str", required=True),
+            login_user=dict(type="str", required=True),
+            login_password=dict(type="str", required=True, no_log=True),
             component=dict(
                 type="str",
                 required=True,
                 choices=["hypervisor", "uvmid", "powervc-version"]
             )
         ),
-        supports_check_mode=False
+        supports_check_mode=True
     )
 
-    host = module.params["host"]
-    username = module.params["username"]
-    password = module.params["password"]
-    state = module.params["state"]
+    host = module.params["login_host"]
+    username = module.params["login_user"]
+    password = module.params["login_password"]
     component = module.params["component"]
 
-    if state == "present":
-        result = handle_present(module, host, username, password, component)
-    else:
-        module.fail_json(msg="Invalid state")
+    result = handle_list(module, host, username, password, component)
 
     module.exit_json(**result)
 
