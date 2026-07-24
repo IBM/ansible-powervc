@@ -1,0 +1,26 @@
+- name: Check and display LDAP config status on a PowerVC node.
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Display in json format"
+      ibm.powervc.cli.ldap:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        json_format: true
+      register: result
+
+    - name: "Display without json formatting"
+      ibm.powervc.cli.ldap:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        json_format: false
+      register: result
+
+    - name: Show pvcldap output
+      debug:
+        var: result.stdout_lines

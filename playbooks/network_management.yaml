@@ -1,0 +1,395 @@
+---
+- name: "PowerVC Network Management - Add Netroute"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Add a network route"
+      ibm.powervc.cli.network_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        component: route
+        state: present
+        route_type: host
+        address: "{{ address }}"
+        netmask: "{{ netmask }}"
+        gateway: "{{ gateway }}"
+        interface: "{{ interface }}"
+        position: "{{ position }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
+
+
+- name: "PowerVC Network Management - Remove Netroute"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Remove a network route"
+      ibm.powervc.cli.network_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        component: route
+        state: absent
+        route_type: host
+        address: "{{ address }}"
+        netmask: "{{ netmask }}"
+        gateway: "{{ gateway }}"
+        interface: "{{ interface }}"
+        position: "{{ position }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
+
+
+- name: "PowerVC Network Management - Add Network Interface"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Add a network interface"
+      ibm.powervc.cli.network_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        component: network
+        state: present
+        address: "{{ address }}"
+        netmask: "{{ netmask }}"
+        interface: "{{ interface }}"
+        gateway: "{{ gateway }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
+
+
+- name: "PowerVC Network Management - Modify Network Interface"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Modify a network interface"
+      ibm.powervc.cli.network_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        component: network
+        state: modify
+        address: "{{ address }}"
+        netmask: "{{ netmask }}"
+        interface: "{{ interface }}"
+        gateway: "{{ gateway }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
+
+
+- name: "PowerVC Network Management - Show Network Interface"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Show network interface information"
+      ibm.powervc.cli.network_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        component: network
+        state: show
+        interface: "{{ interface }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
+
+
+- name: "PowerVC Network Management - Add DNS Configuration"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Add DNS server or domain suffix"
+      ibm.powervc.cli.network_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        component: dns
+        state: present
+        dns_server: "{{ dns_server }}"
+        domain_suffix: "{{ domain_suffix }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
+
+
+- name: "PowerVC Network Management - Remove DNS Configuration"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Remove DNS server or domain suffix"
+      ibm.powervc.cli.network_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        component: dns
+        state: absent
+        dns_server: "{{ dns_server }}"
+        domain_suffix: "{{ domain_suffix }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
+
+
+- name: "PowerVC Network Management - Show NTP Status"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Show NTP service status"
+      ibm.powervc.cli.network_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        component: ntp
+        state: show
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "PowerVC Network Management - Enable NTP"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Enable and start chronyd"
+      ibm.powervc.cli.network_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        component: ntp
+        state: present
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "PowerVC Network Management - Set NTP Servers"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Set NTP servers and trust-servers"
+      ibm.powervc.cli.network_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        component: ntp
+        state: present
+        action: set
+        ntp_servers: "{{ ntp_servers }}"
+        ntp_trust_servers: "{{ ntp_trust_servers }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "PowerVC Network Management - Unset NTP Servers"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Remove specific NTP servers"
+      ibm.powervc.cli.network_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        component: ntp
+        state: absent
+        action: unset
+        ntp_servers: "{{ ntp_servers }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "PowerVC Network Management - Restart NTP"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Restart the chronyd service"
+      ibm.powervc.cli.network_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        component: ntp
+        state: present
+        action: restart
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "PowerVC Network Management - Disable NTP"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Disable and stop chronyd"
+      ibm.powervc.cli.network_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        component: ntp
+        state: absent
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result.stdout_lines
+
+
+# ---------------------------------------------------------------------------
+# Hosts-file management (chpvc update_dns)
+# ---------------------------------------------------------------------------
+
+- name: "PowerVC Network Management - Show Hosts File Entries"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Display current /etc/hosts entries"
+      ibm.powervc.cli.network_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        component: update_dns
+        state: show
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "PowerVC Network Management - Add Hosts File Entry"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Add an entry to /etc/hosts"
+      ibm.powervc.cli.network_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        component: update_dns
+        state: present
+        entry: "{{ hosts_entry }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "PowerVC Network Management - Remove Hosts File Entry"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Remove an entry from /etc/hosts"
+      ibm.powervc.cli.network_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        component: update_dns
+        state: absent
+        entry: "{{ hosts_entry }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "PowerVC Network Management - Modify Hosts File Entry"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Replace an existing /etc/hosts entry"
+      ibm.powervc.cli.network_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        component: update_dns
+        state: modify
+        entry: "{{ hosts_entry }}"
+        new_entry: "{{ new_hosts_entry }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result.stdout_lines

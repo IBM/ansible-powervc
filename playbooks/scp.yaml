@@ -1,0 +1,62 @@
+---
+- name: "Copy files to PowerVC Controller"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Copy a file to PowerVC Controller"
+      ibm.powervc.cli.scp:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        source: "{{ source_file }}"
+        destination: "{{ destination_file }}"
+      register: result
+
+    - name: "Show SCP result"
+      debug:
+        var: result
+---
+- name: "Copy directory to PowerVC"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Copy a directory to PowerVC Controller"
+      ibm.powervc.cli.scp:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        source: "/local/path/directory/"
+        destination: "/remote/path/directory/"
+        recursive: true
+      register: result
+
+    - name: "Show SCP result"
+      debug:
+        var: result
+
+---
+- name: "Copy backup file to PowerVC"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Copy backup archive to PowerVC"
+      ibm.powervc.cli.scp:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        source: "/tmp/backup.tar.gz"
+        destination: "/tmp/backup.tar.gz"
+      register: result
+
+    - name: "Show SCP result"
+      debug:
+        var: result

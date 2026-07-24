@@ -1,0 +1,78 @@
+---
+- name: "Ansible SDK PowerVC CLI Example"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Configure PowerVC"
+      ibm.powervc.cli.configure:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+      register: result
+    - name: "Show stdout"
+      debug:
+        var: result
+
+
+- name: "Ansible SDK PowerVC CLI Example"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Configure PowerVC and validate"
+      ibm.powervc.cli.configure:
+        validate: True
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+      register: result
+    - name: "Show stdout"
+      debug:
+        var: result
+
+
+- name: "Ansible SDK PowerVC CLI Example"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Configure PowerVC in verbose mode"
+      ibm.powervc.cli.configure:
+        verbose: True
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+      register: result
+    - name: "Show stdout"
+      debug:
+        var: result
+
+
+- name: "Ansible SDK PowerVC CLI Example"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Force Configure PowerVC"
+      ibm.powervc.cli.configure:
+        force: True
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}" 
+        cluster: "{{ cluster_name }}"
+      register: result
+    - name: "Show stdout"
+      debug:
+        var: result
