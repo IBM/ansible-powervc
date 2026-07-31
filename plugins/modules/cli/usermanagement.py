@@ -21,10 +21,34 @@ description:
   - C(action=update_expiry) is idempotent — reads the user's current expiry via
     C(lspvcuser list) before acting; returns C(changed=False) if the expiry already
     matches.
-  - C(action=ch_passwd) can only change the password of the authenticated SSH user
-    (C(login_user == new_user)). It cannot set another user's password non-interactively.
-  - C(action=reset_passwd) resets another user's password to the appliance default.
-    There is no CLI flag to set a specific password for another user non-interactively.
+  - "B(Cluster scope behaviour — important):"
+  - C(state=present) uses C(mkpvcuser create -c <cluster>) which propagates the new
+    user B(to all nodes) in the cluster in a single operation.
+  - C(state=absent) uses C(rmpvcuser -c <cluster>) and C(state=modify) uses
+    C(chpvcuser -c <cluster>). Despite accepting the C(-c) cluster flag, both commands
+    operate B(on the local node only) — the change B(does not propagate) to other nodes.
+    These operations must be run B(separately against each node) in the cluster.
+  - This is a B(PowerVC CLI design difference) between C(mkpvcuser) (cluster-wide) and
+    C(chpvcuser)/C(rmpvcuser) (node-local). The module emits a warning at runtime for
+    C(state=absent) and C(state=modify) to remind operators of this requirement.
+  - "B(Password change restrictions on PowerVC (PVCVA) vs HMC):"
+  - On B(HMC), any user holding the C(hmcsuperadmin) task role (or the
+    C(ManageAllUserPasswords) task) can reset another locally-authenticated user's
+    password. Kerberos user passwords can only be changed by the user themselves.
+    LDAP user passwords cannot be changed via the HMC CLI at all.
+  - On B(PowerVC (PVCVA)), this capability is B(more restricted) — only C(pvcroot)
+    is permitted to reset another user's password via C(chpvcuser reset_passwd).
+    Users with C(pvcsuperadmin) role cannot do this, unlike their HMC equivalent
+    C(hmcsuperadmin). This is a known product inconsistency between IBM HMC and
+    PowerVC.
+  - C(action=ch_passwd) changes the B(authenticated SSH user's own) password only
+    (C(login_user) must equal C(new_user)). It cannot set another user's password
+    non-interactively regardless of the caller's role.
+  - C(action=reset_passwd) resets B(another) user's password to the appliance
+    default. Requires C(login_user=pvcroot). C(pvcsuperadmin) users are B(not)
+    authorised to perform this action on PowerVC — unlike C(hmcsuperadmin) on HMC.
+    No CLI flag exists to set a B(specific) password for another user
+    non-interactively on PowerVC.
 options:
   login_host:
     description:
@@ -44,11 +68,11 @@ options:
     no_log: true
   state:
     description:
-      - Action to perform
-      - C(present) - Create user
-      - C(absent) - Remove user
-      - C(show) - List users
-      - C(modify) - Modify user attributes
+      - Action to perform.
+      - C(present) — Create user on B(all nodes) in the cluster (cluster-wide via C(mkpvcuser)).
+      - C(absent) — Remove user. B(Node-local only) — must be run on each node separately.
+      - C(show) — List users on the current node (read-only).
+      - C(modify) — Modify user attributes. B(Node-local only) — must be run on each node separately.
     required: true
     type: str
     choices: ['present', 'absent', 'show', 'modify']
@@ -58,7 +82,12 @@ options:
     type: str
   cluster:
     description:
-      - Cluster name of PowerVC
+      - Cluster name of PowerVC.
+      - For C(state=present) this causes C(mkpvcuser) to create the user on B(all nodes)
+        in the cluster.
+      - For C(state=absent) and C(state=modify) the C(-c) flag provides cluster context
+        to the CLI but the operation is B(node-local only) — it must be repeated on each
+        node separately.
     type: str
   group:
     description:
@@ -100,10 +129,13 @@ options:
   action:
     description:
       - Specific modify action.
-      - C(ch_passwd) — Change your own password (requires C(new_password));
-        only valid when C(login_user == new_user).
-      - C(reset_passwd) — Reset another user's password to the appliance default
-        (does not accept a specific new password).
+      - "C(ch_passwd) — Change B(your own) password (requires C(new_password));
+        C(login_user) must equal C(new_user). Cannot change another user's password
+        regardless of role — this is a PowerVC CLI restriction."
+      - "C(reset_passwd) — Reset B(another) user's password to the appliance default.
+        Does not accept a specific new password. B(Requires C(login_user=pvcroot).)
+        C(pvcsuperadmin) users cannot perform this action on PowerVC, unlike
+        C(hmcsuperadmin) on HMC (known product inconsistency)."
       - C(modify_group) — Change user group (requires C(group)); idempotent.
       - C(update_expiry) — Update password expiry (requires C(expiry)); idempotent.
     type: str
@@ -383,11 +415,18 @@ def handle_absent(module, login_host, login_user, login_password, new_user, clus
     if not cluster:
         module.fail_json(msg="cluster is required for removing a user")
 
+    # Warn: rmpvcuser is node-local — does not propagate across the cluster
+    module.warn(
+        f"state=absent (rmpvcuser) is node-local on PowerVC. "
+        f"Removing user '{new_user}' on this node only. "
+        f"Repeat this task against each node in cluster '{cluster}' separately."
+    )
+
     # Build command
     cmd = f"rmpvcuser -u {new_user} -c {cluster}"
 
     if module.check_mode:
-        return result_ok([f"[CHECK MODE] Would remove user {new_user}"], changed=True)
+        return result_ok([f"[CHECK MODE] Would remove user {new_user} (node-local)"], changed=True)
 
     # Handle silent mode or interactive confirmation
     messages = {}
@@ -460,20 +499,37 @@ def handle_modify(module, login_host, login_user, login_password, new_user, clus
     if not cluster:
         module.fail_json(msg="cluster is required")
 
+    # Warn: chpvcuser is node-local — does not propagate across the cluster
+    module.warn(
+        f"state=modify (chpvcuser) is node-local on PowerVC. "
+        f"Modifying user '{new_user}' on this node only. "
+        f"Repeat this task against each node in cluster '{cluster}' separately."
+    )
+
     if action == "ch_passwd" and login_user != new_user:
         msg = (
-            f"Skipped: ch_passwd can only be used to change your own password. "
-            f"Current user: '{login_user}', Target user: '{new_user}'. "
-            f"To change another user's password, use action='reset_passwd' (requires pvcroot privileges)."
+            f"Skipped: ch_passwd can only change the authenticated user's own password "
+            f"(login_user='{login_user}', new_user='{new_user}'). "
+            f"PowerVC does not allow non-interactive password changes for other users "
+            f"regardless of role. To reset another user's password to the appliance "
+            f"default, use action='reset_passwd' with login_user='pvcroot'."
         )
         return result_ok([msg], changed=False)
 
     if action == "reset_passwd" and login_user == new_user:
         msg = (
-            "Skipped: reset_passwd is for changing another user's password. "
-            "To change your own password, use action='ch_passwd'."
+            "Skipped: reset_passwd resets another user's password, not your own. "
+            "To change your own password use action='ch_passwd'."
         )
         return result_ok([msg], changed=False)
+
+    if action == "reset_passwd" and login_user != "pvcroot":
+        module.warn(
+            f"reset_passwd requires pvcroot privileges on PowerVC (PVCVA). "
+            f"Current login_user is '{login_user}'. Unlike HMC where hmcsuperadmin "
+            f"can reset other users' passwords, pvcsuperadmin cannot do this on "
+            f"PowerVC — only pvcroot is authorised. This operation may fail."
+        )
 
     # Validate required parameters for each action
     if action == "modify_group" and not group:

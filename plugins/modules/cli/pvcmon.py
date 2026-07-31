@@ -67,26 +67,6 @@ EXAMPLES = '''
     - name: Display disk monitoring output
       debug:
         var: result.stdout_lines
-
-
-- name: Monitor PowerVC memory usage with interval
-  hosts: localhost
-  vars_files:
-    - ../vars/powervc.yml
-    - ../vars/secret.yml
-  tasks:
-    - name: Monitor memory at 5-second intervals
-      ibm.powervc.cli.pvcmon:
-        login_host: "{{ ipaddress }}"
-        login_user: "{{ pvc_user }}"
-        login_password: "{{ pvcroot_password }}"
-        resource: "mem"
-        interval: 5
-      register: result
-
-    - name: Display memory monitoring output
-      debug:
-        var: result.stdout_lines
 '''
 
 RETURN = '''

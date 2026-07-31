@@ -35,6 +35,10 @@ options:
       - Cluster name to restore
     required: true
     type: str
+notes:
+  - In check mode the module always reports C(changed=True) because a restore
+    operation always modifies cluster state — there is no way to safely probe
+    whether the restore would succeed without executing it.
 '''
 
 EXAMPLES = '''

@@ -29,6 +29,7 @@ options:
       - Password for the ssh user
     required: true
     type: str
+    no_log: true
   state:
     description:
       - State of time operations. Use C(show) to display time information,

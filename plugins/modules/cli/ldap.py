@@ -29,6 +29,7 @@ options:
       - Password for the ssh user
     required: true
     type: str
+    no_log: true
   json_format:
     description:
       - When C(true), display LDAP configuration in JSON format.

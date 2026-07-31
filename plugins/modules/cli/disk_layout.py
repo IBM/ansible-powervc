@@ -29,6 +29,7 @@ options:
       - Password for the ssh user
     required: true
     type: str
+    no_log: true
   state:
     description:
       - Always C(list) — lists the fdisk partitions. Only value accepted.

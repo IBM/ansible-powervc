@@ -29,6 +29,7 @@ options:
       - Password for the ssh user
     required: true
     type: str
+    no_log: true
   state:
     description:
       - Use C(show) to display the current hostname. Use C(modify) to change it.

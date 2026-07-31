@@ -33,6 +33,7 @@ options:
       - Password for the ssh user
     required: true
     type: str
+    no_log: true
   type:
     description:
       - Type of database to execute the query against.

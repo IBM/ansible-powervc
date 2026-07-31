@@ -1,0 +1,80 @@
+- name: "List inventory"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: "List all inventory"
+      ibm.powervc.cli.inventory:
+        state: list
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+      register: result
+    - name: "Show output"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "List inventory in JSON format"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: "List inventory as JSON"
+      ibm.powervc.cli.inventory:
+        state: list
+        json_format: "yes"
+        cluster: "{{ cluster_name }}"
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+      register: result
+    - name: "Show output"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "Create inventory"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: "Create cluster inventory"
+      ibm.powervc.cli.inventory:
+        state: present
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        node_count: "{{ number_nodes }}"
+        inventory_hosts: "{{ inventory_hosts }}"
+        inventory_user: "{{ inventory_user }}"
+        inventory_password: "{{ node_password }}"
+        virtual_ip: "{{ virtual_ip }}"
+      register: result
+    - name: "Show output"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "Delete inventory"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: "Force delete cluster inventory"
+      ibm.powervc.cli.inventory:
+        state: absent
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        force: "yes"
+      register: result
+    - name: "Show output"
+      debug:
+        var: result.stdout_lines
