@@ -142,7 +142,6 @@ class Connection:
 
                 return responses
 
-
             self.logger.info(
                 "SSH authentication: user=%r host=%r password_present=%s password_length=%d",
                 self.user,
