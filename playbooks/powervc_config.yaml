@@ -1,0 +1,79 @@
+---
+- name: Show identity repository settings
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: Display current identity repository configuration
+      ibm.powervc.cli.powervc_config:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: show
+      register: result
+    - debug:
+        var: result.stdout_lines
+
+
+- name: Switch identity repository to LDAP
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: Configure LDAP identity repository
+      ibm.powervc.cli.powervc_config:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: present
+        repo_type: ldap
+        quiet: true
+        ldap_url: "{{ ldap_url }}"
+        ldap_user: "{{ ldap_bind_user }}"
+        chase_referrals: "{{ ldap_chase_referrals }}"
+        user_tree_dn: "{{ ldap_user_tree_dn }}"
+        group_tree_dn: "{{ ldap_group_tree_dn }}"
+      register: result
+    - debug:
+        var: result.stdout_lines
+
+
+- name: Switch identity repository to local OS
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: Set repository type to os (local Keystone)
+      ibm.powervc.cli.powervc_config:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: present
+        repo_type: os
+        quiet: true
+      register: result
+    - debug:
+        var: result.stdout_lines
+
+
+- name: Update LDAP filters only
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: Interactively update LDAP user and group filters
+      ibm.powervc.cli.powervc_config:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: present
+        update_filters: true
+        user_filter: "{{ ldap_user_filter }}"
+        group_filter: "{{ ldap_group_filter }}"
+      register: result
+    - debug:
+        var: result.stdout_lines
