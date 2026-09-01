@@ -928,7 +928,6 @@ def construct_dns_command(state, dns_server=None, domain_suffix=None):
     return command
 
 
-
 # Interactive confirmation prompt emitted by `chpvc network modify`.
 _NETWORK_MODIFY_PROMPT = r"Do you want to proceed\? \(yes/no\):"
 
@@ -1044,18 +1043,18 @@ def run_network_management(module):
         if current_dns is not None:
             if state == 'present':
                 server_present = (
-                    dns_server is not None and
-                    dns_server.strip().lower() in current_dns['nameservers']
+                    dns_server is not None
+                    and dns_server.strip().lower() in current_dns['nameservers']
                 )
                 suffix_present = (
-                    domain_suffix is not None and
-                    domain_suffix.strip().lower() in current_dns['search']
+                    domain_suffix is not None
+                    and domain_suffix.strip().lower() in current_dns['search']
                 )
                 # Only skip when every supplied field is already present
                 supplied_server = dns_server is not None
                 supplied_suffix = domain_suffix is not None
-                if ((not supplied_server or server_present) and
-                        (not supplied_suffix or suffix_present)):
+                if ((not supplied_server or server_present)
+                        and (not supplied_suffix or suffix_present)):
                     module.exit_json(
                         changed=False, rc=0,
                         stdout_lines=["DNS configuration already present — no change required"],
@@ -1063,12 +1062,12 @@ def run_network_management(module):
                     )
             elif state == 'absent':
                 server_absent = (
-                    dns_server is None or
-                    dns_server.strip().lower() not in current_dns['nameservers']
+                    dns_server is None
+                    or dns_server.strip().lower() not in current_dns['nameservers']
                 )
                 suffix_absent = (
-                    domain_suffix is None or
-                    domain_suffix.strip().lower() not in current_dns['search']
+                    domain_suffix is None
+                    or domain_suffix.strip().lower() not in current_dns['search']
                 )
                 if server_absent and suffix_absent:
                     module.exit_json(
