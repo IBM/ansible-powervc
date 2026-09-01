@@ -383,21 +383,38 @@ def run_service_management(module):
     except Exception as e:
         module.fail_json(msg=str(e), changed=False)
 
-    if int(rc) != 0:
-        stderr_msg = "\n".join(output) if isinstance(output, list) else str(output)
-        module.fail_json(
-            msg=f"Service management command failed: {command}",
-            rc=int(rc),
-            stderr=stderr_msg,
-            changed=False
-        )
-
     lines = output if isinstance(output, list) else [str(output)]
+    joined = "\n".join(lines)
+
+    if int(rc) != 0:
+        # powervc-services status exits rc=2 when nova-manage service list
+        # times out internally — the full service table is still printed to
+        # stdout.  Treat this as a soft warning so the table is returned
+        # rather than swallowing all output with fail_json.
+        nova_timeout = "nova-manage" in joined and "timed out" in joined
+        if nova_timeout:
+            module.warn(
+                f"powervc-services exited rc={rc}: nova-manage service list "
+                "timed out — service table may be incomplete."
+            )
+        else:
+            module.fail_json(
+                msg=f"Service management command failed: {command}",
+                rc=int(rc),
+                stderr=joined,
+                changed=False
+            )
+
+    # Filter out SSH host-key warnings and nova-manage noise — same approach
+    # as inventory.py which passes lines directly without a separate clean step.
+    _noise = ('Permanently added', 'nova-manage', 'timed out')
+    clean_lines = [ln for ln in lines if ln.strip() and not any(n in ln for n in _noise)]
 
     module.exit_json(
         changed=changed,
-        stdout="\n".join(lines),
-        stdout_lines=lines
+        rc=int(rc),
+        stdout_lines=clean_lines,
+        msg="Service management completed successfully"
     )
 
 

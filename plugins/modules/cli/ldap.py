@@ -98,14 +98,11 @@ def run_cmd(module, login_host, login_user, login_password, cmd):
     conn = Connection(module, login_host, login_user,
                       login_password, command=cmd)
     rc, out = conn.run()
-    if rc != 0:
-        module.fail_json(msg=f"Command failed: {cmd}", stderr=out, changed=False)
-    if isinstance(out, list):
-        stdout = "\n".join(out)
-        lines = out
-    else:
-        stdout = out
-        lines = out.splitlines()
+    # connection.run() always returns a list of strings
+    lines = out if isinstance(out, list) else out.splitlines()
+    stdout = "\n".join(lines)
+    # pvcldap is read-only: return output even on non-zero rc so the caller
+    # can surface whatever the command printed rather than raising a hard error
     return rc, stdout, lines
 
 
@@ -129,14 +126,29 @@ def handle_ldap(module):
     login_password = module.params["login_password"]
     json_format = module.params["json_format"]
 
+    # pvcldap exits rc=1 with "LDAP is NOT configured." when LDAP is not set up.
+    # That is a valid read-only result, not a failure — always return the output.
     if json_format:
-        cmd = "pvcldap --json"
+        rc, stdout, lines = run_cmd(
+            module, login_host, login_user, login_password, "pvcldap --json")
+        if rc != 0:
+            # --json not supported on this PowerVC version OR LDAP not configured
+            # — retry without flag so the plain message is surfaced
+            rc, stdout, lines = run_cmd(
+                module, login_host, login_user, login_password, "pvcldap")
+            lines = clean_output(lines)
+        # JSON output is returned verbatim — do not strip lines from a JSON object
     else:
-        cmd = "pvcldap --show"
+        rc, stdout, lines = run_cmd(
+            module, login_host, login_user, login_password, "pvcldap")
+        lines = clean_output(lines)
 
-    rc, stdout, lines = run_cmd(
-        module, login_host, login_user, login_password, cmd)
+    # Only fail for genuine command errors (e.g. binary not found, permission
+    # denied).  rc=1 + "LDAP is NOT configured." is informational, not an error.
+    if rc != 0 and not lines:
+        module.fail_json(msg="pvcldap command failed", stderr=stdout, changed=False)
 
+    stdout = "\n".join(lines)
     return {
         "changed": False,
         "stdout": stdout,

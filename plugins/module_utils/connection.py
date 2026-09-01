@@ -18,7 +18,9 @@ from ansible_collections.ibm.powervc.plugins.module_utils.errors import CLIError
 LOGS_FILE = '/tmp/ansible_sdk.log'
 
 # How long (seconds) to wait for a prompt or for the channel to close.
-_CMD_TIMEOUT = 300
+# Long-running operations (e.g. powervc-services restart --advanced node,
+# powervc-log --restart) can take up to an hour; 1 h is the limit.
+_CMD_TIMEOUT = 3600
 # Poll interval when draining channel output.
 _POLL_INTERVAL = 0.1
 
@@ -30,6 +32,9 @@ def clean_output(s):
     :param str s: raw output string
     :return str s: cleaned string
     """
+    # Strip ESC c (full terminal reset) and ESC ] OSC sequences
+    s = re.sub(r'\x1bc', '', s)
+    s = re.sub(r'\x1b\][^\x07\x1b]*[\x07\x1b]', '', s)
     s = re.sub(r'^.*\x1b\[2K', '', s)
     escape = re.compile(r'\s*\\(?:x|u)?\x1b\[[0-9;]*[A-GJKSTfsu]\s*')
     s = escape.sub('', s)
@@ -81,17 +86,85 @@ class Connection:
     # Transport lifecycle
     # ------------------------------------------------------------------
 
+    # def _get_transport(self):
+    #     """Return the open Transport, creating it on first call."""
+    #     if self._transport is not None and self._transport.is_active():
+    #         return self._transport
+
+    #     self.logger.info("Opening SSH transport to %s", self.host_ip)
+    #     sock_transport = paramiko.Transport((self.host_ip, 22))
+    #     sock_transport.connect(username=self.user, password=self.password)
+    #     self._transport = sock_transport
+    #     self.logger.info("SSH transport established to %s", self.host_ip)
+    #     return self._transport
+
     def _get_transport(self):
         """Return the open Transport, creating it on first call."""
         if self._transport is not None and self._transport.is_active():
             return self._transport
 
         self.logger.info("Opening SSH transport to %s", self.host_ip)
+
         sock_transport = paramiko.Transport((self.host_ip, 22))
-        sock_transport.connect(username=self.user, password=self.password)
-        self._transport = sock_transport
-        self.logger.info("SSH transport established to %s", self.host_ip)
-        return self._transport
+
+        try:
+            sock_transport.connect()
+
+            # def interactive_handler(title, instructions, prompts):
+            #     return [self.password for _ in prompts]
+
+            def interactive_handler(title, instructions, prompts):
+                self.logger.info(
+                    "Keyboard-interactive authentication: "
+                    "title=%r instructions=%r prompts=%r",
+                    title,
+                    instructions,
+                    prompts
+                )
+
+                responses = []
+
+                for prompt, echo in prompts:
+                    self.logger.info(
+                        "SSH authentication prompt: prompt=%r echo=%s",
+                        prompt,
+                        echo
+                    )
+
+                    if "password" in prompt.lower():
+                        responses.append(self.password)
+                    else:
+                        self.logger.error(
+                            "Unsupported keyboard-interactive prompt: %r",
+                            prompt
+                        )
+                        responses.append("")
+
+                return responses
+
+
+            self.logger.info(
+                "SSH authentication: user=%r host=%r password_present=%s password_length=%d",
+                self.user,
+                self.host_ip,
+                bool(self.password),
+                len(self.password) if self.password else 0
+            )
+            sock_transport.auth_interactive(
+                self.user,
+                interactive_handler
+            )
+
+            self._transport = sock_transport
+            self.logger.info(
+                "SSH transport established to %s using keyboard-interactive",
+                self.host_ip
+            )
+            return self._transport
+
+        except Exception:
+            sock_transport.close()
+            raise
 
     def close(self):
         """Explicitly close the underlying Transport."""
@@ -159,24 +232,40 @@ class Connection:
         Returns ``(exit_code, stdout_str)``.
         """
         chan = transport.open_session()
-        chan.settimeout(_CMD_TIMEOUT)
+        # No socket-level timeout — the deadline loop below owns the overall
+        # time limit.  A socket timeout on recv() would fire prematurely for
+        # long-running commands and is redundant with our deadline check.
+        chan.settimeout(None)
         chan.exec_command(self.cmd)
 
         stdout_chunks = []
         stderr_chunks = []
 
         deadline = time.monotonic() + _CMD_TIMEOUT
-        while not chan.exit_status_ready():
+        while True:
             if time.monotonic() > deadline:
                 chan.close()
                 raise CLIError("Command timed out")
-            if chan.recv_ready():
-                stdout_chunks.append(chan.recv(4096).decode('utf-8', errors='replace'))
-            if chan.recv_stderr_ready():
-                stderr_chunks.append(chan.recv_stderr(4096).decode('utf-8', errors='replace'))
-            time.sleep(_POLL_INTERVAL)
 
-        # Drain remaining data after exit
+            # Drain all available data every iteration so the remote end's
+            # send buffer never fills up and stalls a long-running command.
+            drained = False
+            while chan.recv_ready():
+                stdout_chunks.append(chan.recv(4096).decode('utf-8', errors='replace'))
+                drained = True
+            while chan.recv_stderr_ready():
+                stderr_chunks.append(chan.recv_stderr(4096).decode('utf-8', errors='replace'))
+                drained = True
+
+            if chan.exit_status_ready():
+                break
+
+            # Only sleep when no data arrived; skip when data is flowing so
+            # output is consumed as fast as possible and buffers stay clear.
+            if not drained:
+                time.sleep(_POLL_INTERVAL)
+
+        # Drain any remaining data after the exit status is signalled.
         while chan.recv_ready():
             stdout_chunks.append(chan.recv(4096).decode('utf-8', errors='replace'))
         while chan.recv_stderr_ready():
@@ -201,17 +290,20 @@ class Connection:
         """
         chan = transport.open_session()
         chan.get_pty()
-        chan.settimeout(_CMD_TIMEOUT)
+        chan.settimeout(None)
         chan.exec_command(self.cmd)
 
         buf = ''
-        deadline = time.monotonic() + _CMD_TIMEOUT
 
         for pattern, reply in self.messages.items():
             regex = re.compile(pattern, re.IGNORECASE | re.DOTALL)
             matched = False
+            # Each prompt gets its own fresh deadline so that time spent
+            # waiting for earlier prompts does not eat into the budget for
+            # post-prompt work (e.g. a service restart triggered by --restart).
+            prompt_deadline = time.monotonic() + _CMD_TIMEOUT
 
-            while time.monotonic() < deadline:
+            while time.monotonic() < prompt_deadline:
                 if chan.recv_ready():
                     chunk = chan.recv(4096).decode('utf-8', errors='replace')
                     buf += chunk
@@ -227,14 +319,27 @@ class Connection:
             if not matched:
                 self.logger.warning("Pattern %r not matched within timeout", pattern)
 
-        # Drain remaining output
-        while not chan.exit_status_ready():
-            if time.monotonic() > deadline:
+        # Drain remaining output after all prompts have been answered.
+        # Use a fresh deadline so a long post-prompt operation (e.g.
+        # powervc-log --restart) has its own full time budget.
+        drain_deadline = time.monotonic() + _CMD_TIMEOUT
+        while True:
+            if time.monotonic() > drain_deadline:
                 chan.close()
                 raise CLIError("Interactive command timed out")
-            if chan.recv_ready():
+
+            # Drain all available data to prevent the remote buffer from
+            # filling and stalling exit_status_ready().
+            drained = False
+            while chan.recv_ready():
                 buf += chan.recv(4096).decode('utf-8', errors='replace')
-            time.sleep(_POLL_INTERVAL)
+                drained = True
+
+            if chan.exit_status_ready():
+                break
+
+            if not drained:
+                time.sleep(_POLL_INTERVAL)
 
         while chan.recv_ready():
             buf += chan.recv(4096).decode('utf-8', errors='replace')

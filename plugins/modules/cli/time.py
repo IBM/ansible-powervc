@@ -12,7 +12,12 @@ author:
     - Fredolin B Brone (@Fredolin-B-Brone1)
 short_description: Displays and sets time, shows time settings and properties
 description:
-  - This module displays and sets time, settings and properties
+  - This module displays and sets time, settings and properties on the PowerVC
+    Controller using C(chpvc timezone) subcommands.
+  - C(state=show action=settings) runs C(chpvc timezone status).
+  - C(state=show action=properties) runs C(chpvc timezone show).
+  - C(state=present) without C(value) displays the current local time.
+  - C(state=present value=<YYYY-MM-DD HH:MM:SS>) runs C(chpvc timezone set-time).
 options:
   login_host:
     description:
@@ -40,8 +45,9 @@ options:
     choices: ['show', 'present']
   action:
     description:
-      - Sub-action for C(state=show). Use C(settings) to display time show
-        output, C(properties) to display time status output.
+      - Sub-action for C(state=show).
+        Use C(settings) to run C(chpvc timezone status) (current time/tz settings).
+        Use C(properties) to run C(chpvc timezone show) (timedated properties).
     required: false
     type: str
     choices: ['settings', 'properties']
@@ -152,17 +158,13 @@ import re
 def run_cmd(module, host, user, password, cmd):
     conn = Connection(module, host, user, password, command=cmd)
     rc, out = conn.run()
+    # connection.run() always returns a list of strings
+    lines = out if isinstance(out, list) else out.splitlines()
     if rc != 0:
-        module.fail_json(msg=f"Command failed: {cmd}", stdout=out, rc=rc)
-
-    if isinstance(out, list):
-        cleaned = []
-        for line in out:
-            cleaned.append(line.encode(
-                "utf-8", errors="replace").decode("utf-8"))
-        return cleaned
-    else:
-        return out.encode("utf-8", errors="replace").decode("utf-8")
+        module.fail_json(msg=f"Command failed: {cmd}",
+                         stdout="\n".join(lines), rc=rc)
+    return [line.encode("utf-8", errors="replace").decode("utf-8")
+            for line in lines]
 
 
 def normalize(output):
@@ -177,20 +179,23 @@ def result_ok(stdout_lines, changed=False):
 
 
 def show_properties(module, host, user, password):
+    # chpvc timezone show → timedated properties (RTC, NTP sync state, etc.)
     _, lines = normalize(
-        run_cmd(module, host, user, password, "chpvc time status"))
+        run_cmd(module, host, user, password, "chpvc timezone show"))
     return result_ok(lines)
 
 
 def show_settings(module, host, user, password):
+    # chpvc timezone status → current time / timezone settings
     _, lines = normalize(
-        run_cmd(module, host, user, password, "chpvc time show"))
+        run_cmd(module, host, user, password, "chpvc timezone status"))
     return result_ok(lines)
 
 
 def get_current_time(module, host, user, password):
+    # chpvc timezone status surfaces "Local time: <value>"
     stdout, _ = normalize(
-        run_cmd(module, host, user, password, "chpvc time status"))
+        run_cmd(module, host, user, password, "chpvc timezone status"))
     m = re.search(r"Local time:\s*(.*)", stdout)
     return m.group(1).strip() if m else None
 
@@ -225,8 +230,15 @@ def set_time(module, host, user, password, time_value):
             changed=True
         )
 
+    # chpvc timezone set-time requires the datetime in quotes so the
+    # shell treats "YYYY-MM-DD HH:MM:SS" as one argument (not two).
+    # NTP sync must be disabled first; if it is enabled the CLI exits rc=1
+    # with "Failed to set time: Automatic time synchronization is enabled".
+    # Disable NTP, set the time, then re-enable NTP.
+    run_cmd(module, host, user, password, "chpvc ntp disable")
     run_cmd(module, host, user, password,
-            f'chpvc time set-time "{time_value}"')
+            f"chpvc timezone set-time '{time_value}'")
+    run_cmd(module, host, user, password, "chpvc ntp enable")
     return result_ok([f"System time updated to {time_value}"], changed=True)
 
 

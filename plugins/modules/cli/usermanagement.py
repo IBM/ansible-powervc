@@ -96,8 +96,7 @@ options:
   new_password:
     description:
       - Password for the new user or to change existing user password
-      - Required for C(state=present) and C(action=ch_passwd)
-      - Not required for C(action=reset_passwd) (resets to default password)
+      - Required for C(state=present), C(action=ch_passwd), and C(action=reset_passwd)
     type: str
     no_log: true
   expiry:
@@ -132,8 +131,8 @@ options:
       - "C(ch_passwd) — Change B(your own) password (requires C(new_password));
         C(login_user) must equal C(new_user). Cannot change another user's password
         regardless of role — this is a PowerVC CLI restriction."
-      - "C(reset_passwd) — Reset B(another) user's password to the appliance default.
-        Does not accept a specific new password. B(Requires C(login_user=pvcroot).)
+      - "C(reset_passwd) — Reset B(another) user's password to a specified new password
+        (C(new_password) required). B(Requires C(login_user=pvcroot).)
         C(pvcsuperadmin) users cannot perform this action on PowerVC, unlike
         C(hmcsuperadmin) on HMC (known product inconsistency)."
       - C(modify_group) — Change user group (requires C(group)); idempotent.
@@ -258,6 +257,29 @@ EXAMPLES = '''
         var: result.stdout_lines
 
 
+- name: Reset a PowerVC user password to appliance default
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: Reset another user's password (requires login_user=pvcroot)
+      ibm.powervc.cli.usermanagement:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: "modify"
+        action: "reset_passwd"
+        new_user: "{{ new_user }}"
+        cluster: "{{ cluster_name }}"
+        new_password: "{{ new_password }}"
+      register: result
+
+    - name: Display reset password output
+      debug:
+        var: result.stdout_lines
+
+
 - name: Modify a PowerVC user group
   hosts: localhost
   vars_files:
@@ -299,6 +321,15 @@ stdout_lines:
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.ibm.powervc.plugins.module_utils.connection import Connection
+import re as _re
+
+_ANSI_RE = _re.compile(
+    r'\x1b(?:c|\[[0-9;]*[A-GJKSTfmsu]|\][^\x07\x1b]*[\x07\x1b])'
+)
+
+
+def _strip_ansi(s):
+    return _ANSI_RE.sub('', s)
 
 
 def run_cmd(module, login_host, login_user, login_password, cmd, messages=None, check_idempotent=False, handle_errors=False):
@@ -315,20 +346,35 @@ def run_cmd(module, login_host, login_user, login_password, cmd, messages=None, 
         if "User already exists" in stderr_msg or "Cannot recreate same user" in stderr_msg:
             return stderr_msg, out, True  # Return with idempotent flag
 
-        # Check for user not found error
-        if "User not found" in stderr_msg or "does not exist" in stderr_msg or "No such user" in stderr_msg:
+        # Check for user not found error — narrow match, must NOT match cluster errors
+        if "User not found" in stderr_msg or "No such user" in stderr_msg:
+            return stderr_msg, out, True  # Return with idempotent flag
+        # "does not exist" with a username context (e.g. "User test1234 does not exist")
+        # but NOT a cluster error like "Cluster pragnya does not exists"
+        if "does not exist" in stderr_msg and "Cluster" not in stderr_msg:
             return stderr_msg, out, True  # Return with idempotent flag
 
     if rc != 0 and handle_errors:
         stderr_msg = "\n".join(out) if isinstance(out, list) else str(out)
+
+        # Hard errors — always fail, never swallow silently
+        hard_errors = [
+            "Cluster",          # "Cluster pragnya does not exists"
+            "Permission denied",
+            "not authorized",
+        ]
+        for pattern in hard_errors:
+            if pattern in stderr_msg:
+                module.fail_json(
+                    msg=f"Command failed (cluster/permission error): {stderr_msg.strip()}",
+                    stderr=stderr_msg
+                )
 
         error_patterns = [
             "doesnot exists",
             "does not exist",
             "Group '.*' doesnot exists",
             "Invalid group",
-            "Permission denied",
-            "not authorized",
             "Invalid expiry"
         ]
 
@@ -486,8 +532,8 @@ def _read_user_field(module, login_host, login_user, login_password, new_user, f
     if is_error:
         return None
     for line in lines:
-        line = line.strip()
-        if line and not line.startswith("+") and not line.lower().startswith(field):
+        line = _strip_ansi(line).strip()
+        if line and not line.startswith("+") and not line.startswith("-") and not line.lower().startswith(field):
             return line
     return None
 
@@ -538,9 +584,9 @@ def handle_modify(module, login_host, login_user, login_password, new_user, clus
     if action == "update_expiry" and not expiry:
         module.fail_json(msg="expiry is required for action 'update_expiry'")
 
-    # Only ch_passwd requires new_password; reset_passwd resets to default password
-    if action == "ch_passwd" and not new_password:
-        module.fail_json(msg="new_password is required for action 'ch_passwd'")
+    # Both ch_passwd and reset_passwd require new_password (CLI prompts for it)
+    if action in ("ch_passwd", "reset_passwd") and not new_password:
+        module.fail_json(msg=f"new_password is required for action '{action}'")
 
     # Idempotency: read current state before mutating
     if action == "modify_group":
@@ -572,7 +618,7 @@ def handle_modify(module, login_host, login_user, login_password, new_user, clus
         cmd += f" -e {expiry}"
 
     messages = {}
-    if action == "ch_passwd":
+    if action in ("ch_passwd", "reset_passwd"):
         messages = {
             r"Enter new password.*:\s*": new_password,
             r"Confirm.*password.*:\s*": new_password

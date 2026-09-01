@@ -230,6 +230,7 @@
         action: set
         ntp_servers: "{{ ntp_servers }}"
         ntp_trust_servers: "{{ ntp_trust_servers }}"
+        ntp_iburst: "{{ ntp_iburst }}"
       register: result
 
     - name: "Show stdout"
@@ -253,6 +254,7 @@
         state: absent
         action: unset
         ntp_servers: "{{ ntp_servers }}"
+        ntp_iburst: "{{ ntp_iburst }}"
       register: result
 
     - name: "Show stdout"

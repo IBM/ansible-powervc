@@ -16,7 +16,7 @@
         new_user: "{{ new_user }}"
         state: "absent"
         cluster: "{{ cluster_name }}"
-        silent: "{{ silent | bool }}"
+        silent: true
         confirm: "yes"
       register: result
 
@@ -128,7 +128,7 @@
       debug:
         var: result.stdout_lines
 
-    - name: "Reset another user's password to default"
+    - name: "Reset another user's password"
       ibm.powervc.cli.usermanagement:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
@@ -137,6 +137,7 @@
         action: "reset_passwd"
         new_user: "{{ new_user }}"
         cluster: "{{ cluster_name }}"
+        new_password: "{{ new_password }}"
       register: result
 
     - name: "Show reset password output"

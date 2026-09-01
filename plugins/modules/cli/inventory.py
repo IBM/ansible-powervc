@@ -230,14 +230,14 @@ def construct_command(state, cluster_name=None, number_nodes=None, virtual_ip=No
             return None, {}
         command = f"powervc-opsmgr inventory -c {cluster_name} --quiet"
         messages = {
-            r"\s*Enter the number of nodes\s*:\s*": str(number_nodes),
+            r"Enter the number of nodes\s*:\s*": str(number_nodes),
         }
         for i in range(1, int(number_nodes) + 1):
-            messages[rf"\s*Enter IP/Hostname for Node {i}\s*:\s*"] = node_ip[i - 1]
+            messages[rf"Enter IP/Hostname for Node {i}\s*:\s*"] = node_ip[i - 1]
         messages.update({
-            r"\s*Enter Username for all nodes\s*:\s*": inventory_user,
-            r"\s*Enter Password for all nodes\s*:\s*": node_passwd,
-            r"\s*Enter\s+Virtual\s+IP/Hostname\s*:\s*": virtual_ip,
+            # r"Enter Username for all nodes\s*:\s*": inventory_user,
+            r"Enter pvcroot password\s*:\s*": node_passwd,
+            r"Enter Virtual IP/Hostname\s*:\s*": virtual_ip,
         })
         return command, messages
 
@@ -247,7 +247,7 @@ def construct_command(state, cluster_name=None, number_nodes=None, virtual_ip=No
         command = f"powervc-opsmgr inventory -c {cluster_name} -d"
         confirm = 'y' if force == 'yes' else 'n'
         messages = {
-            r"(\s)*Are you sure you want to delete cluster (y/n)(\s)*:(\s)*": confirm
+            r"Are you sure you want to delete cluster \(y/n\)\s*:": confirm
         }
         return command, messages
 

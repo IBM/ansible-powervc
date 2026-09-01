@@ -1,5 +1,5 @@
 ipaddress: ""
-pvc_user: "pvcroot"
+pvc_user: ""
 command: ""
 virtual_ip: ""
 node_count: 1   # Positive integer
@@ -24,6 +24,13 @@ firewall_action: ""          # Options: add, remove
 address: ""
 netmask: ""
 interface: ""
+gateway: ""
+dns_server: ""
+domain_suffix: ""
+ntp_servers: ""
+ntp_trust_servers: ""
+ntp_iburst: ""
+hosts_entry: ""
 hostname_action: ""        # Options: show, modify
 value: ""                      # Required only if hostname_action = modify
 timezone_action: ""      # Options: status, show, set-time, list-timezones, set-timezone, settings, properties
@@ -62,8 +69,8 @@ expiry_days: "" # Password expiry in days
 
 
 #Powervc Log Variables
-service: "" # Service name (e.g., general, network, storage)
-action: "" # Action (debug)
+service: "general" # Service name (e.g., general, network, storage)
+action: "debug" # Action (debug)
 modules: "" # Modules (e.g., nova.api.openstack.compute.contrib.flavors)
 user_response: "y" # Response to interactive prompt when enabling general service debug: 'y' or 'n'
 
@@ -104,3 +111,13 @@ update_state: "" # State: present (update/prepare), absent (cleanup)
 source_file: "" #local path 
 destination_file: ""  #remote path
 recursive: ""  #true/false
+
+# powervc_config (identity repository) variables
+repo_type: ""                  # Options: os, ldap
+ldap_url: ""                   # LDAP server URL, e.g. ldap://10.0.0.1
+ldap_bind_user: ""             # LDAP bind DN, e.g. cn=admin,dc=example,dc=com
+ldap_chase_referrals: "False"  # Options: True, False (False recommended for AD)
+ldap_user_tree_dn: ""          # e.g. ou=Users,dc=example,dc=com
+ldap_group_tree_dn: ""         # e.g. ou=Groups,dc=example,dc=com
+ldap_user_filter: ""           # LDAP search filter for users
+ldap_group_filter: ""          # LDAP search filter for groups

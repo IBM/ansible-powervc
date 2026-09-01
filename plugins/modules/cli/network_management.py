@@ -26,15 +26,26 @@ description:
     fields (IP, netmask, gateway) already match. C(--check) mode also reads current state.
   - C(component=network), C(state=modify) automatically answers the interactive
     confirmation prompt with C(yes).
-  - C(component=dns) is idempotent — C(state=present) reads C(chpvc network_dns show)
-    first and skips the add if the entry already exists; C(state=absent) skips the
-    remove if the entry is already absent. C(--check) mode also reads current state.
+  - C(component=dns) supports C(state=present) (C(chpvc network_dns add)) and
+    C(state=absent) (C(chpvc network_dns remove)) only; C(state=show) is not
+    supported by the CLI.
+  - C(component=dns) is idempotent — C(state=present) reads C(/etc/resolv.conf) via SSH
+    and skips the command if the DNS server and/or domain suffix are already configured.
+    C(state=absent) skips the command if the entries are already absent.
+    C(--check) mode also reads C(/etc/resolv.conf) so it correctly reports
+    C(changed=false) when the system is already compliant.
   - C(component=ntp), C(state=show) maps to C(chpvc ntp status) and is read-only.
-  - C(component=ntp), C(state=present) maps to C(chpvc ntp enable).
-  - C(component=ntp), C(state=absent) maps to C(chpvc ntp disable).
-  - C(component=ntp), C(action=set) sets NTP servers via C(chpvc ntp set).
-  - C(component=ntp), C(action=unset) removes NTP servers via C(chpvc ntp unset).
-  - C(component=ntp), C(action=restart) restarts chronyd via C(chpvc ntp restart).
+  - C(component=ntp), C(state=present) maps to C(chpvc ntp enable); idempotent —
+    reads C(chpvc ntp status) first and skips if chronyd is already enabled.
+  - C(component=ntp), C(state=absent) maps to C(chpvc ntp disable); idempotent —
+    reads C(chpvc ntp status) first and skips if chronyd is already disabled.
+  - C(component=ntp), C(action=set) sets NTP servers via C(chpvc ntp set); idempotent —
+    reads C(/etc/chrony.conf) and skips if all requested servers are already configured.
+  - C(component=ntp), C(action=unset) removes NTP servers via C(chpvc ntp unset);
+    idempotent — reads C(/etc/chrony.conf) and skips if none of the requested servers
+    are currently present in the configuration.
+  - C(component=ntp), C(action=restart) restarts chronyd via C(chpvc ntp restart);
+    always mutates (restart is not idempotent by nature).
   - C(component=update_dns) manages C(/etc/hosts) entries via C(chpvc update_dns).
   - C(component=update_dns), C(state=show) displays current hosts-file entries.
   - C(component=update_dns), C(state=present) adds an entry (C(entry) required);
@@ -87,8 +98,10 @@ options:
   action:
     description:
       - Sub-action for C(component=ntp).
-      - C(set) — set NTP servers (requires C(ntp_servers) or C(ntp_trust_servers)).
-      - C(unset) — remove NTP servers (requires C(ntp_servers)).
+      - C(set) — set NTP servers (requires C(ntp_servers) or C(ntp_trust_servers));
+        optionally adds iburst to plain servers via C(ntp_iburst).
+      - C(unset) — remove NTP servers (requires C(ntp_servers)); optionally removes
+        the iburst flag from servers via C(ntp_iburst).
       - C(restart) — restart the chronyd service.
       - When not specified the C(state) value drives the operation.
     required: false
@@ -105,6 +118,16 @@ options:
     description:
       - Comma-separated list of trusted NTP server addresses.
       - Used with C(action=set) only (maps to C(--trust-servers)).
+    required: false
+    type: str
+  ntp_iburst:
+    description:
+      - Comma-separated list of NTP server addresses for which to apply the
+        iburst flag.
+      - Used with C(action=set) (maps to C(--iburst)) to add iburst to plain
+        servers (trust-servers receive iburst automatically).
+      - Used with C(action=unset) (maps to C(--iburst)) to remove the iburst
+        flag from servers without removing the server entry itself.
     required: false
     type: str
   address:
@@ -346,6 +369,7 @@ EXAMPLES = '''
         action: set
         ntp_servers: "{{ ntp_servers }}"
         ntp_trust_servers: "{{ ntp_trust_servers }}"
+        ntp_iburst: "{{ ntp_iburst }}"
       register: result
     - debug:
         var: result.stdout_lines
@@ -366,6 +390,7 @@ EXAMPLES = '''
         state: absent
         action: unset
         ntp_servers: "{{ ntp_servers }}"
+        ntp_iburst: "{{ ntp_iburst }}"
       register: result
     - debug:
         var: result.stdout_lines
@@ -469,7 +494,8 @@ RETURN = '''
 changed:
   description: >
     Whether a network change was made.
-    C(false) for C(state=show) (read-only) and on failure.
+    C(false) for C(state=show) (read-only), on failure, or when the system is
+    already in the desired state (idempotent pre-read guard fired).
     C(true) for all mutating operations that succeed.
   returned: always
   type: bool
@@ -557,15 +583,15 @@ def construct_network_command(state, interface=None, address=None,
 
 
 def construct_ntp_command(state, action=None, ntp_servers=None,
-                          ntp_trust_servers=None):
+                          ntp_trust_servers=None, ntp_iburst=None):
     '''Construct the chpvc ntp command.
 
     Mapping:
       state=show                      → chpvc ntp status
       state=present  (no action)      → chpvc ntp enable
       state=absent   (no action)      → chpvc ntp disable
-      state=present, action=set       → chpvc ntp set [--servers ...] [--trust-servers ...]
-      state=absent,  action=unset     → chpvc ntp unset [--servers ...]
+      state=present, action=set       → chpvc ntp set [--servers ...] [--trust-servers ...] [--iburst ...]
+      state=absent,  action=unset     → chpvc ntp unset [--servers ...] [--iburst ...]
       state=present, action=restart   → chpvc ntp restart
     '''
     if state == 'show':
@@ -580,12 +606,16 @@ def construct_ntp_command(state, action=None, ntp_servers=None,
             command += f" --servers {ntp_servers}"
         if ntp_trust_servers is not None:
             command += f" --trust-servers {ntp_trust_servers}"
+        if ntp_iburst is not None:
+            command += f" --iburst {ntp_iburst}"
         return command
 
     if action == 'unset':
         command = "chpvc ntp unset"
         if ntp_servers is not None:
             command += f" --servers {ntp_servers}"
+        if ntp_iburst is not None:
+            command += f" --iburst {ntp_iburst}"
         return command
 
     # plain enable / disable
@@ -732,14 +762,163 @@ def _network_already_matches(current, address=None, netmask=None, gateway=None):
     return True
 
 
+# Matches ANSI escape sequences so they can be stripped before parsing.
+import re as _re
+_ANSI_ESCAPE = _re.compile(r'\x1b(?:\[[0-9;]*[A-Za-z]|\][^\x07\x1b]*[\x07\x1b]|c)')
+
+
+def _strip_ansi_nm(s):
+    return _ANSI_ESCAPE.sub('', s)
+
+
+def _parse_ntp_status(lines):
+    '''Parse output of ``chpvc ntp status`` into a dict with keys:
+
+      ``enabled``  (bool)   — True when any line contains the word "enabled"
+                              (after ANSI stripping).  False when "disabled"
+                              is found first.  chpvc ntp output does not use
+                              a key:value format — it emits plain messages such
+                              as "chronyd enabled" or "chronyd disabled" inside
+                              a decorative box.
+      ``servers``  (set)    — normalised (stripped, lowercased) server addresses
+                              extracted from any "NTP Servers" / "Servers" line
+                              that uses the key : value format.
+
+    Returns a dict with at least ``enabled`` set when the output is parseable.
+    Callers treat an empty dict as "unknown — skip idempotency".
+    '''
+    result = {}
+    for raw_line in lines:
+        line = _strip_ansi_nm(raw_line).strip().lower()
+        if not line:
+            continue
+
+        # Plain-text enable/disable detection — no colon required.
+        # Matches "chronyd enabled", "ntp enabled", "service: enabled", etc.
+        if 'enabled' in line and 'disabled' not in line:
+            result['enabled'] = True
+        elif 'disabled' in line:
+            result['enabled'] = False
+
+        # Server list — only present in key : value lines.
+        if ':' in line and 'server' in line:
+            _, _, val = line.partition(':')
+            val = val.strip()
+            if val:
+                result['servers'] = {
+                    s.strip() for s in val.split(',') if s.strip()
+                }
+    return result
+
+
+def _read_ntp_status(module, host_ip, user, password):
+    '''Read current NTP status via ``chpvc ntp status``.
+
+    Returns the dict from ``_parse_ntp_status``, or an empty dict on any
+    failure — callers treat an empty dict as "skip idempotency".
+    '''
+    connection = Connection(module, host_ip, user, password,
+                            command="chpvc ntp status", messages={})
+    try:
+        rc, output = connection.run()
+    except Exception:
+        return {}
+
+    if int(rc) != 0:
+        return {}
+
+    lines = output if isinstance(output, list) else str(output).splitlines()
+    return _parse_ntp_status(lines)
+
+
+def _read_chrony_conf(module, host_ip, user, password):
+    '''Read configured NTP servers from ``/etc/chrony.conf`` via SSH.
+
+    Returns a set of lowercased server/pool addresses currently in the file.
+    Returns None on any failure so callers skip idempotency rather than aborting.
+
+    Relevant /etc/chrony.conf directives:
+        server   10.0.0.1 iburst
+        pool     time.google.com iburst
+        peer     10.0.0.2
+    The first token after the directive keyword is the address.
+    '''
+    connection = Connection(module, host_ip, user, password,
+                            command="cat /etc/chrony.conf", messages={})
+    try:
+        rc, output = connection.run()
+    except Exception:
+        return None
+
+    if int(rc) != 0:
+        return None
+
+    lines = output if isinstance(output, list) else str(output).splitlines()
+    servers = set()
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        parts = line.split()
+        if len(parts) >= 2 and parts[0].lower() in ('server', 'pool', 'peer'):
+            servers.add(parts[1].strip().lower())
+    return servers
+
+
+def _read_resolv_conf(module, host_ip, user, password):
+    '''Read current DNS configuration from ``/etc/resolv.conf`` via SSH.
+
+    Returns a dict with:
+      ``nameservers``  (set)  — lowercased IP addresses from ``nameserver`` lines
+      ``search``       (set)  — lowercased domain names from ``search``/``domain`` lines
+
+    Returns None on any failure so callers skip idempotency rather than aborting.
+
+    /etc/resolv.conf format (relevant lines):
+        nameserver 10.0.0.1
+        nameserver 10.0.0.2
+        search example.com local.domain
+        domain example.com
+    '''
+    connection = Connection(module, host_ip, user, password,
+                            command="cat /etc/resolv.conf", messages={})
+    try:
+        rc, output = connection.run()
+    except Exception:
+        return None
+
+    if int(rc) != 0:
+        return None
+
+    lines = output if isinstance(output, list) else str(output).splitlines()
+    nameservers = set()
+    search_domains = set()
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        parts = line.split()
+        if not parts:
+            continue
+        directive = parts[0].lower()
+        if directive == 'nameserver' and len(parts) >= 2:
+            nameservers.add(parts[1].strip().lower())
+        elif directive in ('search', 'domain') and len(parts) >= 2:
+            for domain in parts[1:]:
+                search_domains.add(domain.strip().lower())
+    return {'nameservers': nameservers, 'search': search_domains}
+
+
 def construct_dns_command(state, dns_server=None, domain_suffix=None):
-    '''Construct the chpvc network_dns command.'''
+    '''Construct the chpvc network_dns command.
+
+    Only add (state=present) and remove (state=absent) are supported by the CLI.
+    state=show is not available for network_dns.
+    '''
     if state == 'present':
         command = "chpvc network_dns add"
     elif state == 'absent':
         command = "chpvc network_dns remove"
-    elif state == 'show':
-        return "chpvc network_dns show"
     else:
         return None
     if dns_server is not None:
@@ -748,61 +927,6 @@ def construct_dns_command(state, dns_server=None, domain_suffix=None):
         command += f" --domain-suffix {domain_suffix}"
     return command
 
-
-def _read_dns_current(module, host_ip, user, password):
-    '''Read current DNS servers and domain suffixes via chpvc network_dns show.
-
-    Returns (servers, suffixes) where each is a set of lowercase strings.
-    If the show command fails, returns (None, None) so the caller proceeds
-    without idempotency rather than aborting.
-    '''
-    connection = Connection(module, host_ip, user, password,
-                            command="chpvc network_dns show", messages={})
-    try:
-        rc, output = connection.run()
-    except Exception:
-        return None, None
-
-    if int(rc) != 0:
-        return None, None
-
-    lines = output if isinstance(output, list) else str(output).splitlines()
-    servers = set()
-    suffixes = set()
-    for line in lines:
-        line = line.strip()
-        # typical output lines: "DNS Server: 8.8.8.8" / "Domain Suffix: example.com"
-        if line.lower().startswith("dns server"):
-            val = line.split(":", 1)[-1].strip().lower()
-            if val:
-                servers.add(val)
-        elif line.lower().startswith("domain suffix"):
-            val = line.split(":", 1)[-1].strip().lower()
-            if val:
-                suffixes.add(val)
-    return servers, suffixes
-
-
-def _dns_already_present(current_servers, current_suffixes, dns_server, domain_suffix):
-    '''Return True if every requested entry already exists in current state.'''
-    if current_servers is None:
-        return False
-    if dns_server and dns_server.lower() not in current_servers:
-        return False
-    if domain_suffix and domain_suffix.lower() not in current_suffixes:
-        return False
-    return True
-
-
-def _dns_already_absent(current_servers, current_suffixes, dns_server, domain_suffix):
-    '''Return True if every requested entry is already absent from current state.'''
-    if current_servers is None:
-        return False
-    if dns_server and dns_server.lower() in current_servers:
-        return False
-    if domain_suffix and domain_suffix.lower() in current_suffixes:
-        return False
-    return True
 
 
 # Interactive confirmation prompt emitted by `chpvc network modify`.
@@ -813,7 +937,7 @@ def construct_command(state, component, address=None, netmask=None,
                       interface=None, gateway=None, position=None,
                       route_type=None, dns_server=None, domain_suffix=None,
                       action=None, ntp_servers=None, ntp_trust_servers=None,
-                      entry=None, new_entry=None):
+                      ntp_iburst=None, entry=None, new_entry=None):
     '''Return (command, messages) or (None, {error: ...}) on invalid combination.'''
     messages = {}
     if component == 'firewall':
@@ -830,7 +954,8 @@ def construct_command(state, component, address=None, netmask=None,
     elif component == 'dns':
         command = construct_dns_command(state, dns_server, domain_suffix)
     elif component == 'ntp':
-        command = construct_ntp_command(state, action, ntp_servers, ntp_trust_servers)
+        command = construct_ntp_command(state, action, ntp_servers, ntp_trust_servers,
+                                        ntp_iburst)
     elif component == 'update_dns':
         command = construct_update_dns_command(state, entry, new_entry)
         if command is None and state != 'show':
@@ -876,6 +1001,7 @@ def run_network_management(module):
     action = module.params.get('action')
     ntp_servers = module.params.get('ntp_servers')
     ntp_trust_servers = module.params.get('ntp_trust_servers')
+    ntp_iburst = module.params.get('ntp_iburst')
     entry = module.params.get('entry')
     new_entry = module.params.get('new_entry')
 
@@ -908,30 +1034,115 @@ def run_network_management(module):
                 msg="Hosts entry already absent — no change required"
             )
 
-    # DNS idempotency: read current state before deciding whether to act.
-    # This also makes check_mode accurate — it reports the real desired-vs-actual
-    # delta instead of always claiming changed=True.
+    # dns idempotency: read /etc/resolv.conf before add/remove.
+    # chpvc network_dns has no show subcommand, so we cat /etc/resolv.conf directly.
+    # If the read fails, current=None → skip idempotency check and proceed.
+    #   present → skip if dns_server already in nameservers, or domain_suffix already in search
+    #   absent  → skip if dns_server not in nameservers, or domain_suffix not in search
     if component == 'dns' and state in ('present', 'absent'):
-        cur_servers, cur_suffixes = _read_dns_current(module, host_ip, user, password)
-        if state == 'present' and _dns_already_present(
-                cur_servers, cur_suffixes, dns_server, domain_suffix):
-            module.exit_json(
-                changed=False, rc=0,
-                stdout_lines=["DNS entry already present — no change required"],
-                msg="DNS entry already present — no change required"
-            )
-        if state == 'absent' and _dns_already_absent(
-                cur_servers, cur_suffixes, dns_server, domain_suffix):
-            module.exit_json(
-                changed=False, rc=0,
-                stdout_lines=["DNS entry already absent — no change required"],
-                msg="DNS entry already absent — no change required"
-            )
+        current_dns = _read_resolv_conf(module, host_ip, user, password)
+        if current_dns is not None:
+            if state == 'present':
+                server_present = (
+                    dns_server is not None and
+                    dns_server.strip().lower() in current_dns['nameservers']
+                )
+                suffix_present = (
+                    domain_suffix is not None and
+                    domain_suffix.strip().lower() in current_dns['search']
+                )
+                # Only skip when every supplied field is already present
+                supplied_server = dns_server is not None
+                supplied_suffix = domain_suffix is not None
+                if ((not supplied_server or server_present) and
+                        (not supplied_suffix or suffix_present)):
+                    module.exit_json(
+                        changed=False, rc=0,
+                        stdout_lines=["DNS configuration already present — no change required"],
+                        msg="DNS configuration already present — no change required"
+                    )
+            elif state == 'absent':
+                server_absent = (
+                    dns_server is None or
+                    dns_server.strip().lower() not in current_dns['nameservers']
+                )
+                suffix_absent = (
+                    domain_suffix is None or
+                    domain_suffix.strip().lower() not in current_dns['search']
+                )
+                if server_absent and suffix_absent:
+                    module.exit_json(
+                        changed=False, rc=0,
+                        stdout_lines=["DNS configuration already absent — no change required"],
+                        msg="DNS configuration already absent — no change required"
+                    )
+
+    # ntp idempotency: read chpvc ntp status before any mutating operation.
+    # If the read fails (empty dict) we skip the check and proceed — never abort.
+    #   enable  → skip if chronyd is already enabled
+    #   disable → skip if chronyd is already disabled
+    #   set     → skip if every requested server is already in the current server list
+    #   unset   → skip if none of the requested servers appear in the current list
+    #   restart → always mutates; no meaningful idempotency
+    if component == 'ntp' and state != 'show' and action != 'restart':
+        ntp_current = _read_ntp_status(module, host_ip, user, password)
+
+        if action is None and ntp_current:
+            # enable / disable
+            if state == 'present' and ntp_current.get('enabled') is True:
+                module.exit_json(
+                    changed=False, rc=0,
+                    stdout_lines=["NTP (chronyd) is already enabled — no change required"],
+                    msg="NTP (chronyd) is already enabled — no change required"
+                )
+            if state == 'absent' and ntp_current.get('enabled') is False:
+                module.exit_json(
+                    changed=False, rc=0,
+                    stdout_lines=["NTP (chronyd) is already disabled — no change required"],
+                    msg="NTP (chronyd) is already disabled — no change required"
+                )
+
+        if action == 'set':
+            # chpvc ntp status does not expose the server list — read /etc/chrony.conf.
+            current_servers = _read_chrony_conf(module, host_ip, user, password)
+            if current_servers is not None:
+                requested = {
+                    s.strip().lower()
+                    for src in (ntp_servers, ntp_trust_servers, ntp_iburst)
+                    if src
+                    for s in src.split(',')
+                    if s.strip()
+                }
+                if requested and requested.issubset(current_servers):
+                    module.exit_json(
+                        changed=False, rc=0,
+                        stdout_lines=["All requested NTP servers already configured — no change required"],
+                        msg="All requested NTP servers already configured — no change required"
+                    )
+
+        if action == 'unset':
+            # chpvc ntp status does not expose the server list — read /etc/chrony.conf.
+            # Only check ntp_servers here — ntp_iburst removes a flag from an existing
+            # server entry, not the server itself, so its presence in chrony.conf does
+            # not indicate a no-op for the iburst removal.
+            current_servers = _read_chrony_conf(module, host_ip, user, password)
+            if current_servers is not None and ntp_servers:
+                requested = {
+                    s.strip().lower()
+                    for s in ntp_servers.split(',')
+                    if s.strip()
+                }
+                if requested and not requested.intersection(current_servers):
+                    module.exit_json(
+                        changed=False, rc=0,
+                        stdout_lines=["None of the requested NTP servers are configured — no change required"],
+                        msg="None of the requested NTP servers are configured — no change required"
+                    )
 
     command, messages = construct_command(
         state, component, address, netmask, interface, gateway,
         position, route_type, dns_server, domain_suffix,
-        action, ntp_servers, ntp_trust_servers, entry, new_entry)
+        action, ntp_servers, ntp_trust_servers, ntp_iburst, entry, new_entry)
 
     if command is None:
         err_msg = messages.get('error', 'Invalid component/state combination')
@@ -976,10 +1187,20 @@ def run_network_management(module):
             stderr="\n".join(lines)
         )
 
-    # state=show is read-only for all components — never modifies configuration
-    # For ntp: enable/disable/set/unset/restart all mutate state
+    # state=show is read-only for all components — never modifies configuration.
+    # component=dns: the CLI itself reports "No changes made" when add/remove is
+    # a no-op (entry already present / already absent), so we detect that phrase
+    # to return changed=False without needing a separate show command.
+    # For ntp: enable/disable/set/unset/restart all mutate state.
+    if component == 'dns' and state in ('present', 'absent'):
+        joined = "\n".join(lines).lower()
+        dns_changed = "no changes made" not in joined
+    else:
+        dns_changed = None
+
+    changed = (state != 'show') if dns_changed is None else dns_changed
     module.exit_json(
-        changed=(state != 'show'),
+        changed=changed,
         rc=int(rc),
         stdout_lines=lines,
         msg="Network management completed successfully"
@@ -1010,6 +1231,7 @@ def main():
             domain_suffix=dict(type='str', required=False),
             ntp_servers=dict(type='str', required=False),
             ntp_trust_servers=dict(type='str', required=False),
+            ntp_iburst=dict(type='str', required=False),
             entry=dict(type='str', required=False),
             new_entry=dict(type='str', required=False),
         ),

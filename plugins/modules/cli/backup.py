@@ -184,11 +184,14 @@ def run_backup(module):
 
     # F1: non-zero exit code is a genuine failure — use fail_json so Ansible
     # marks the task FAILED and triggers block/rescue and failed_when handlers.
+    # connection.run() returns list[str]; join before passing to fail_json so
+    # Ansible's internals don't call .splitlines() on a list.
     if int(rc) != 0:
+        stderr_str = "\n".join(output) if isinstance(output, list) else str(output)
         module.fail_json(
             msg="Backup operation failed",
             rc=int(rc),
-            stderr=output,
+            stderr=stderr_str,
             changed=False
         )
 
