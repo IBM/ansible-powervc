@@ -1,0 +1,213 @@
+---
+- name: "PowerVC Log Management"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "View current debug settings"
+      ibm.powervc.cli.powervc_log:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        service: "{{ service }}"
+        action: "{{ action }}"
+        state: "show"
+      register: result
+
+    - name: "Display result"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "PowerVC Log Management"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Enable debug (without restart, without modules)"
+      ibm.powervc.cli.powervc_log:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        service: "{{ service }}"
+        action: "{{ action }}"
+        state: "present"
+        restart: false
+        user_response: "{{ user_response }}"
+      register: result
+
+    - name: "Display result"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "PowerVC Log Management"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Enable debug (with restart, without modules)"
+      ibm.powervc.cli.powervc_log:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        service: "{{ service }}"
+        action: "{{ action }}"
+        state: "present"
+        restart: true
+        user_response: "{{ user_response }}"
+      register: result
+
+    - name: "Display result"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "PowerVC Log Management"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Enable debug (without restart, with modules)"
+      ibm.powervc.cli.powervc_log:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        service: "{{ service }}"
+        action: "{{ action }}"
+        state: "present"
+        modules: "{{ modules }}"
+        restart: false
+        user_response: "{{ user_response }}"
+      register: result
+
+    - name: "Display result"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "PowerVC Log Management"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Enable debug (with restart, with modules)"
+      ibm.powervc.cli.powervc_log:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        service: "{{ service }}"
+        action: "{{ action }}"
+        state: "present"
+        modules: "{{ modules }}"
+        restart: true
+        user_response: "{{ user_response }}"
+      register: result
+
+    - name: "Display result"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "PowerVC Log Management"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Disable debug (without restart, without modules)"
+      ibm.powervc.cli.powervc_log:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        service: "{{ service }}"
+        action: "{{ action }}"
+        state: "absent"
+        restart: false
+      register: result
+
+    - name: "Display result"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "PowerVC Log Management"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Disable debug (with restart, without modules)"
+      ibm.powervc.cli.powervc_log:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        service: "{{ service }}"
+        action: "{{ action }}"
+        state: "absent"
+        restart: true
+      register: result
+
+    - name: "Display result"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "PowerVC Log Management"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Disable debug (without restart, with modules)"
+      ibm.powervc.cli.powervc_log:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        service: "{{ service }}"
+        action: "{{ action }}"
+        state: "absent"
+        modules: "{{ modules }}"
+        restart: false
+      register: result
+
+    - name: "Display result"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "PowerVC Log Management"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Disable debug (with restart, with modules)"
+      ibm.powervc.cli.powervc_log:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        service: "{{ service }}"
+        action: "{{ action }}"
+        state: "absent"
+        modules: "{{ modules }}"
+        restart: true
+      register: result
+
+    - name: "Display result"
+      debug:
+        var: result.stdout_lines

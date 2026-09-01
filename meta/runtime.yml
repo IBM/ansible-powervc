@@ -1,3 +1,7 @@
 ---
 requires_ansible: '>=2.14'
 
+# Python package dependencies required at runtime
+dependencies:
+  python:
+    - paramiko>=2.10

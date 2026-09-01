@@ -1,0 +1,20 @@
+---
+- name: "Restore PowerVC cluster"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Restore cluster"
+      ibm.powervc.cli.restore:
+        state: present
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result

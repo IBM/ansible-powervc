@@ -1,0 +1,150 @@
+- name: "Show local service status"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: "Show status of all local services"
+      ibm.powervc.cli.service_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        operation: "status"
+      register: result
+    - name: "Show command output"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "Show remote service status"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: "Show status of remote services"
+      ibm.powervc.cli.service_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        operation: "status"
+        service: "remote"
+      register: result
+    - name: "Show command output"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "List remote nodes"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: "List remote nodes"
+      ibm.powervc.cli.service_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        operation: "list"
+        service: "remote"
+      register: result
+    - name: "Show command output"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "Restart a specific service"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: "Restart nova service"
+      ibm.powervc.cli.service_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        operation: "restart"
+        service: "nova"
+      register: result
+    - name: "Show command output"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "Advanced restart"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: "Perform advanced component restart"
+      ibm.powervc.cli.service_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        operation: "restart"
+        advanced: "{{ advanced_argument }}"
+      register: result
+    - name: "Show command output"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "Restart services on a specific remote node"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: "Restart all services on a specific node"
+      ibm.powervc.cli.service_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        operation: "restart"
+        service: "remote"
+        node: "{{ node }}"
+      register: result
+    - name: "Show command output"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "Restart services skipping a component"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: "Restart services, skip a component"
+      ibm.powervc.cli.service_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        operation: "restart"
+        skip: "{{ skip }}"
+      register: result
+    - name: "Show command output"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "Get service status in JSON format"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: "Get service status as JSON"
+      ibm.powervc.cli.service_management:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        operation: "status"
+        output_format: "json"
+      register: result
+    - name: "Show command output"
+      debug:
+        var: result.stdout_lines

@@ -1,0 +1,19 @@
+---
+- name: "Get PowerVC System Uptime"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Get system uptime time from PowerVC Controller"
+      ibm.powervc.cli.uptime:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+      register: result
+
+    - name: "Display uptime information"
+      debug:
+        var: result.stdout_lines
+
