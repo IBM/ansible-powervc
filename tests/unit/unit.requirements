@@ -9,3 +9,4 @@ yamllint    # for ansible-test
 pytest      # for pytest
 pytest-mock # for pytest
 rstcheck
+requests
