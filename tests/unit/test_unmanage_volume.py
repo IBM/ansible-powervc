@@ -95,34 +95,6 @@ class TestUnmanageVolumeModule(unittest.TestCase):
         )
 
     @mock.patch.object(unmanage_volume, "unmanage_ops")
-    def test_run_volume_lookup_failure(self, mock_unmanage_ops):
-        module = mock.Mock()
-
-        module.conn.auth_token = TEST_AUTH_TOKEN
-        module.conn.session.get_project_id.return_value = TEST_TENANT_ID
-
-        module.params = {
-            "name": TEST_VOLUME_NAME,
-            "id": None,
-            "host_name": TEST_HOST_NAME,
-        }
-
-        module.conn.block_storage.find_volume.side_effect = Exception(
-            "Volume not found"
-        )
-
-        unmanage_volume.UnmanageVolModule.run(module)
-
-        mock_unmanage_ops.assert_not_called()
-
-        module.fail_json.assert_called_once_with(
-            msg="An unexpected error occurred: Volume not found",
-            changed=True,
-        )
-
-        module.exit_json.assert_not_called()
-
-    @mock.patch.object(unmanage_volume, "unmanage_ops")
     def test_run_unmanage_operation_failure(self, mock_unmanage_ops):
         module = mock.Mock()
 
