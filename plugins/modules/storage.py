@@ -16,7 +16,7 @@ options:
     type: str
     choices: [present, absent]
     default: present
-  host_name:
+  id:
     description:
       - host_name of the storage system.
       - Used in fetching the storage details and for removing the storage
@@ -73,10 +73,10 @@ EXAMPLES = r'''
     cloud: powervc
 
 # Get specific storage
-- name: Get storage by host_name
+- name: Get storage by id
   ibm.powervc.storage:
     cloud: powervc
-    host_name: storage123
+    name: storage123
 
 # Register SVC storage
 - name: Register SVC storage
@@ -133,7 +133,7 @@ EXAMPLES = r'''
 - name: Delete storage
   ibm.powervc.storage:
     cloud: powervc
-    host_name : storage123
+    host: storage123
     state: absent
 '''
 
@@ -149,7 +149,7 @@ from ansible_collections.openstack.cloud.plugins.module_utils.openstack import (
 class StorageModule(OpenStackModule):
     argument_spec = dict(
         state=dict(type="str", choices=["present", "absent"], default="present"),
-        host_name=dict(type="str"),
+        id=dict(type="str"),
         host=dict(type="str"),
         user=dict(type="str"),
         password=dict(type="str", no_log=True),
@@ -165,7 +165,7 @@ class StorageModule(OpenStackModule):
 
     def run(self):
         state = self.params.get("state")
-        storage_id = self.params.get("host_name")
+        storage_id = self.params.get("id")
         host = self.params.get("host")
         user = self.params.get("user")
         password = self.params.get("password")

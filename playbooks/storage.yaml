@@ -16,10 +16,10 @@
   hosts: localhost
   gather_facts: false
   tasks:
-    - name: Fetch storage by host_name
+    - name: Fetch storage
       ibm.powervc.storage:
         cloud: "powervc"
-        host_name: "storage123"
+        id: "storage123"
       register: result
     - name: Display result
       ansible.builtin.debug:
@@ -87,6 +87,7 @@
       ansible.builtin.debug:
         var: result
 
+
 - name: Register ds8k storage
   hosts: localhost
   gather_facts: false
@@ -104,6 +105,7 @@
     - name: Display result
       ansible.builtin.debug:
         var: result
+
 
 - name: Register Hitachi Storage Playbook
   hosts: localhost
@@ -158,6 +160,46 @@
         var: result
 
 
+- name: Update SVC Storage Playbook
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Update SVC storage using SSH key
+      ibm.powervc.storage:
+        cloud: "powervc"
+        state: present
+        id: "storage123"
+        host: "1.2.4.5"
+        user: "superuser"
+        ssh_key: |
+          -----BEGIN OPENSSH PRIVATE KEY-----
+          -----------------------------------
+          -----END OPENSSH PRIVATE KEY-----
+        name: "SVC-1.2.4.5"
+      register: result
+    - name: Display result
+      ansible.builtin.debug:
+        var: result
+
+
+- name: Update SVC Storage using password Playbook
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Update SVC storage
+      ibm.powervc.storage:
+        cloud: "powervc"
+        state: present
+        id: "storage123"
+        host: "1.2.4.5"
+        user: "superuser"
+        password: "passw0rd"
+      register: result
+    - name: Display result
+      ansible.builtin.debug:
+        var: result
+
+
 - name: Delete Storage Playbook
   hosts: localhost
   gather_facts: false
@@ -165,7 +207,7 @@
     - name: Delete storage
       ibm.powervc.storage:
         cloud: "powervc"
-        host_name: "storage123"
+        id: "storage123"
         state: absent
       register: result
     - name: Display result
