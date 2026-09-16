@@ -1,0 +1,42 @@
+---
+name: run ibm.powervc collection unit tests
+
+# run unit test during pull request to dev-collection
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches: [main]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  unit-test:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11']
+
+    name: running unit tests with python ${{ matrix.python-version }}
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+
+      - name: setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: install ansible ${{ matrix.ansible-version }}
+        run: |
+          make install-ansible
+
+      - name: install python modules needed for unit testing
+        run: |
+          make install-unit-test-requirements
+
+      - name: run unit tests
+        run: |
+          make unit-test PYTHON_VERSION=${{ matrix.python-version }}
