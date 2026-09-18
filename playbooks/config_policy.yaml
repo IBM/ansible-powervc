@@ -1,0 +1,42 @@
+---
+- name: "PowerVC Config Policy - Show current policy"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Read current policy configuration"
+      ibm.powervc.cli.config_policy:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        state: show
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result.stdout_lines
+
+
+- name: "PowerVC Config Policy - Set policy"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Apply policy (idempotent — skips if already set)"
+      ibm.powervc.cli.config_policy:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        state: present
+        policy: "{{ policy }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result.stdout_lines

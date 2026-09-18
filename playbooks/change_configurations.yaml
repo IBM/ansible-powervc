@@ -1,0 +1,101 @@
+---
+- name: "Change Configuration Files"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Add key-value pair to a configuration file"
+      ibm.powervc.cli.configuration_file:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: present
+        action: add
+        filename: "{{ filename }}"
+        section: "{{ section }}"
+        parameter: "{{ parameter }}"
+        value: "{{ value }}"
+        restart: "{{ restart }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
+
+---
+- name: "Change Configuration Files"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Modify an existing key-value pair in a configuration file"
+      ibm.powervc.cli.configuration_file:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: present
+        action: modify
+        filename: "{{ filename }}"
+        section: "{{ section }}"
+        parameter: "{{ parameter }}"
+        value: "{{ value }}"
+        restart: "{{ restart }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
+
+---
+- name: "Change Configuration Files"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Remove a key-value pair from a configuration file"
+      ibm.powervc.cli.configuration_file:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: absent
+        filename: "{{ filename }}"
+        section: "{{ section }}"
+        parameter: "{{ parameter }}"
+        restart: "{{ restart }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
+
+---
+- name: "Change Configuration Files"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Modify an existing key-value pair in a configuration file"
+      ibm.powervc.cli.configuration_file:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: present
+        action: modify
+        filename: "{{ filename }}"
+        section: "{{ section }}"
+        parameter: "{{ parameter }}"
+        value: "{{ value }}"
+        restart: "yes"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
