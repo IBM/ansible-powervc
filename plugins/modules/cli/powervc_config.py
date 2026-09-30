@@ -91,6 +91,13 @@ options:
       - User name for authenticating to the LDAP server,
         e.g. C(cn=bob,dc=example,dc=com).
     type: str
+  ldap_password:
+    description:
+      - Password for C(ldap_user). Sent via an interactive PTY channel so it
+        never appears on the command line. Required when C(ldap_user) is set
+        and C(anon) is not C(true).
+    type: str
+    no_log: true
   tls_cert:
     description:
       - Path to the secure certificate file.
@@ -370,10 +377,12 @@ def _build_command(params):
     if params.get('query_scope'):
         cmd += f" --query-scope {params['query_scope']}"
 
-    # powervc-config identity repository prompts interactively unless -q is given.
-    # When quiet=false and repo_type is specified the CLI may ask questions.
-    # We do not auto-answer those — callers should set quiet=true for automation.
+    # powervc-config identity repository prompts interactively for the bind
+    # password when --ldap-user is specified.  Supply it via the PTY path so
+    # it never appears on the command line.
     messages = {}
+    if params.get('ldap_password'):
+        messages[r"(?i)(bind\s*password|ldap\s*password|password\s*for\s*bind|enter\s*password)"] = params['ldap_password']
 
     return cmd, messages
 
@@ -451,6 +460,7 @@ def main():
             anon=dict(type='bool', default=False),
             chase_referrals=dict(type='str', choices=['True', 'False']),
             ldap_user=dict(type='str'),
+            ldap_password=dict(type='str', no_log=True),
             tls_cert=dict(type='str'),
             insecure=dict(type='bool', default=False),
             tls_cacertfile=dict(type='str'),

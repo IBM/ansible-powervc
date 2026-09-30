@@ -12,7 +12,8 @@
           - "This operation may take several minutes."
           - "Please wait while tasks are running."
 
-    - name: List current scale configuration
+    # --list
+    - name: List current scale configuration (all nodes)
       ibm.powervc.cli.scale_config:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
@@ -23,64 +24,102 @@
     - debug:
         var: result.stdout_lines
 
-    - name: Apply scale settings from scale.conf
+    # --list --node-type --section
+    - name: List scale configuration filtered by node type and section
       ibm.powervc.cli.scale_config:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
-        state: present
+        state: show
+        node_type: "{{ scale_config_node_type }}"
+        section: "{{ scale_config_section }}"
       register: result
 
     - debug:
         var: result.stdout_lines
 
-    - name: Configure nova-compute-svc
+    # --validate
+    - name: Validate scale_params.conf syntax
       ibm.powervc.cli.scale_config:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
-        state: present
-        service: "{{ scale_config_service}}"
-        memory_max: "{{ scale_config_memory_max }}"
+        state: validate
       register: result
 
     - debug:
         var: result.stdout_lines
 
-    - name: Configure nova-compute-svc on specific host
+    # --apply --env-type --dry-run -q
+    - name: Dry-run apply (preview changes without writing)
       ibm.powervc.cli.scale_config:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
         state: present
-        service: "{{ scale_config_service }}"
-        memory_max: "{{ scale_config_memory_max }}"
-        host: "{{ scale_config_host }}"
+        env_type: "{{ scale_config_env_type }}"
+        dry_run: "{{ scale_config_dry_run }}"
+        quiet: "{{ scale_config_quiet }}"
       register: result
 
     - debug:
         var: result.stdout_lines
 
-    - name: Configure nova-compute-svc and restart service
+    # --apply --env-type -q
+    - name: Apply scale settings for the configured tier
       ibm.powervc.cli.scale_config:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
         state: present
-        service: "{{ scale_config_service }}"
-        memory_max: "{{ scale_config_memory_max }}"
-        restart: true
+        env_type: "{{ scale_config_env_type }}"
+        quiet: "{{ scale_config_quiet }}"
       register: result
 
     - debug:
         var: result.stdout_lines
 
-    - name: Revert scale settings
+    # --apply --env-type --verbose --no-restart --restart-timeout -q
+    - name: Apply scale settings with verbose output and no service restarts
+      ibm.powervc.cli.scale_config:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: present
+        env_type: "{{ scale_config_env_type }}"
+        verbose: "{{ scale_config_verbose }}"
+        no_restart: "{{ scale_config_no_restart }}"
+        restart_timeout: "{{ scale_config_restart_timeout | default(omit) }}"
+        quiet: "{{ scale_config_quiet }}"
+      register: result
+
+    - debug:
+        var: result.stdout_lines
+
+    # --apply --env-type --force --restart-timeout -q
+    - name: Force re-apply scale settings (bypass idempotency check)
+      ibm.powervc.cli.scale_config:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: present
+        env_type: "{{ scale_config_env_type }}"
+        force: "{{ scale_config_force }}"
+        restart_timeout: "{{ scale_config_restart_timeout | default(omit) }}"
+        quiet: "{{ scale_config_quiet }}"
+      register: result
+
+    - debug:
+        var: result.stdout_lines
+
+    # --revert
+    - name: Revert scale settings to defaults
       ibm.powervc.cli.scale_config:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
         state: absent
+        quiet: "{{ scale_config_quiet }}"
       register: result
 
     - debug:

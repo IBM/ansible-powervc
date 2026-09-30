@@ -83,29 +83,56 @@ skip: ""             # Component(s) to skip during start, stop, or restart
 output_format: ""    # Options: raw, json, detail
 
 # Scale Config Variables
-scale_config_service: "nova-compute-svc"
-scale_config_memory_max: "64G" 
-scale_config_host: "" 
+scale_config_env_type: "default"    # Options: default, small, medium, large
+scale_config_node_type: "all"       # Options: all, controller, novalink, hmc_compute, image_node
+scale_config_section: ""            # Section name to filter --list output; use "help" to list all sections
+scale_config_dry_run: false         # true: preview changes without writing anything
+scale_config_verbose: false         # true: print each change as it is applied
+scale_config_quiet: true            # true: suppress confirmation prompts (recommended for automation)
+scale_config_force: false           # true: bypass idempotency check and re-apply
+scale_config_no_restart: false      # true: write config files but skip service restarts
+scale_config_restart_timeout: ""    # Seconds to wait per Pacemaker resource after restart (leave blank to use CLI default of 120)
 
 
 #pvc mon variables
 resource: ""  # Options: disk, proc, mem, swap, inode
-interval: 4   # Interval in seconds (0 for one-time output, default: 4)
+interval: 0   # Always to be 0
 
 #config_policy variables
 policy: "" # Options: ppc, restricted
 
 # PowerVC OpsMgr Update Variables
-update_node: "" # Node hostname/IP for rolling upgrade (required unless using offline_mode)
-update_skip_restart: false # Skip restart for tasks with restart tag
-update_list_ifixes: false # List applied ifixes from cluster
-update_force: false # Force update operation
-update_verbose: false # Enable verbose output during update
-update_ifix_isopath: "" # Absolute path of ifix ISO file
-update_prepare_isopath: "" # Absolute path of ISO for system preparation
-update_offline_mode: true # Block API calls during update (no node required)
-update_skip_remote_node_upgrade: false # Skip remote node (Novalink, compute, cinder backup) upgrade
-update_state: "" # State: present (update/prepare), absent (cleanup)
+update_node: ""                         # Controller node hostname/IP for rolling upgrade or controller ifix
+update_skip_restart: false              # Skip restart for tasks with restart tag
+update_list_ifixes: false               # List applied ifixes (combine with update_remote_node for remote nodes)
+update_force: false                     # Force update/ifix operation
+update_verbose: false                   # Enable verbose output during update
+update_ifix_isopath: ""                 # Absolute path of ifix ISO file on the controller
+update_prepare_isopath: ""              # Local ISO path or URL for system preparation
+update_offline_mode: false              # Block all API/UI calls during update (no node required)
+update_skip_remote_node_upgrade: false  # Skip remote node (Novalink, compute, cinder backup) upgrade
+update_state: "present"                 # State: present (update/prepare/ifix), absent (cleanup)
+
+# Remote-node ifix variables (use with update_remote_node: true)
+update_remote_node: false               # Operate on remote nodes (novalinks and image nodes)
+update_all_remotenodes: false           # Apply ifix on all remote nodes (novalinks + image nodes)
+update_all_novalinks: false             # Apply ifix on all novalink nodes only
+update_all_imagenodes: false            # Apply ifix on all image nodes only
+update_apply_specificnodes: []          # List of remote node IPs to apply ifix on
+update_skip_remotenodes_ifix: []        # List of remote node IPs to skip when applying ifix
+
+# ISO download variables (use with update_prepare_isopath as URL)
+update_prepare_url: ""                  # URL to download ISO from (used as prepare_isopath)
+update_http_username: ""                # HTTP Basic Auth username for ISO download
+update_http_password: ""                # HTTP Basic Auth password for ISO download (use vault)
+update_download_only: false             # Download ISO only, do not run setup-iso or update
+update_download_destination: ""         # Destination directory for ISO download on controller
+
+# PowerVC OpsMgr Upgrade Variables
+upgrade_force: false                    # Force the upgrade operation
+upgrade_verbose: false                  # Enable verbose output during upgrade
+upgrade_skip_remote_node_upgrade: false # Skip remote node (Novalink, cinder image node) upgrade
+upgrade_node_ip: ""                     # Node IP for --preupgrade or --postupgrade Base OS tasks
 
 #scp variables
 source_file: "" #local path 
@@ -121,3 +148,79 @@ ldap_user_tree_dn: ""          # e.g. ou=Users,dc=example,dc=com
 ldap_group_tree_dn: ""         # e.g. ou=Groups,dc=example,dc=com
 ldap_user_filter: ""           # LDAP search filter for users
 ldap_group_filter: ""          # LDAP search filter for groups
+ldap_password: ""              # Bind password for ldap_bind_user (no_log: fed via PTY, never on command line)
+
+# External Backup Variables (external_backup module)
+ext_backup_dir: "/powervchome/backups"     # Local backup directory on the PowerVC Controller
+
+# NFS target settings (required when ext_backup_target_type: nfs)
+ext_backup_nfs_server: ""                  # NFS server hostname or IP
+ext_backup_nfs_export: ""                  # Exported NFS path, e.g. /exports/powervc-backups
+ext_backup_nfs_mount_point: "/mnt/powervc_external_backup"  # Temporary mount point (created/removed automatically)
+ext_backup_nfs_options: ""                 # Extra mount -o options, e.g. rw,sync,soft,timeo=30
+
+# IBM COS target settings (required when ext_backup_target_type: cos)
+ext_backup_cos_endpoint: ""               # COS S3-compatible endpoint URL
+ext_backup_cos_bucket: ""                 # Target COS bucket name
+ext_backup_cos_prefix: ""                 # Key prefix / folder inside the bucket (optional)
+# ext_backup_cos_access_key and ext_backup_cos_secret_key must be stored in vars/secret.yml
+
+# Role Mapping Variables (role_mapping module)
+os_username: "servicebroker"    # OpenStack username for running openstack CLI (typically servicebroker)
+# os_password must be stored in vars/secret.yml (no_log: true)
+role_mapping_role: "admin"       # OpenStack role to assign, e.g. admin, viewer, member
+role_mapping_project: "ibm-default"  # Target OpenStack project
+role_mapping_ldap_group: ""      # LDAP group to map (mutually exclusive with role_mapping_ldap_user)
+role_mapping_ldap_user: ""       # LDAP user to map (mutually exclusive with role_mapping_ldap_group)
+role_mapping_ldap_group_viewer: ""  # LDAP group to assign the viewer role
+
+# RAID Configuration Variables (raid_configuration module)
+# action — enable/disable pvcraid (mutually exclusive with subcommand)
+raid_action: ""              # Options: enable, disable
+
+# subcommand + operation — pvcraid top-level command and its sub-subcommand
+raid_subcommand: ""          # Options: diskshow, dracut, grub, imgbackup, lvmconf,
+                             #   mdadmconf, mount, multipath, raidconf, rmdir, rsync, sync, umount
+raid_operation: ""           # Sub-subcommand; see module documentation for valid values per subcommand
+
+# dracut build / imgbackup run
+raid_dracut_image: ""        # Output initramfs image path, e.g. /boot/img3a  (required: dracut build)
+raid_dracut_kernel: ""       # Kernel version string, e.g. output of uname -r  (required: dracut build, imgbackup run)
+
+# grub (shared)
+raid_mountpoint: ""          # Chroot/mount directory  (required: grub mkconfig, mount run)
+raid_grub_output: ""         # grub.cfg output path inside chroot  (optional: grub mkconfig)
+raid_grub_device: ""         # New DEVROOTFS value, e.g. /dev/md0  (required: grub set-devrootfs)
+raid_grub_cfg: ""            # Path to grub.cfg  (optional: grub set-devrootfs, verify, set-bootline)
+raid_grub_d_dir: ""          # Source grub.d directory  (optional: grub rewrite-fs-uuid/rewrite-normal-boot)
+raid_md_uuid: []             # List of MD array UUIDs  (required: grub rewrite-normal-boot, set-bootline)
+raid_settle_timeout: 60      # rd.udev.settle-timeout in seconds  (optional: grub rewrite-normal-boot, set-bootline)
+raid_grub_image: ""          # Boot image to match and replace, e.g. /boot/img2a  (required: grub set-bootline)
+
+# mdadmconf write
+raid_arrays: []              # List of {device, uuid} dicts, e.g. [{device: /dev/md0, uuid: "abc:def:..."}]
+raid_mailaddr: ""            # MAILADDR for /etc/mdadm.conf  (optional; default: root@localhost)
+
+# mount run
+raid_mount_device: ""        # Block device to mount, e.g. /dev/md0  (required unless source is set)
+
+# multipath configure
+raid_polling_interval: 30    # polling_interval in defaults{}
+raid_alias_prefix: ""        # Alias prefix for multipaths{} entries  (optional; default: rootvg-disk)
+
+# multipath write-bindings
+raid_aliases: []             # List of {alias, wwid} dicts, e.g. [{alias: rootvg-disk1, wwid: "36005..."}]
+
+# raidconf create
+raid_enabled: "true"         # RAID_ENABLED value: true or false
+
+# rmdir run
+raid_dirs: []                # List of empty directories to remove, e.g. [/mnt/md0]
+
+# rsync run
+raid_rsync_source: ""        # Source directory, e.g. / or /var/
+raid_rsync_dest: ""          # Destination directory, e.g. /mnt/md0/
+raid_excludes: []            # List of extra exclude patterns, e.g. ["/home/*"]
+
+# umount run
+raid_mountpoints: []         # List of mountpoints in reverse-mount order (deepest first)

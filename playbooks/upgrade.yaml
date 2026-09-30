@@ -1,0 +1,111 @@
+---
+# Example 1: Full cluster rolling upgrade
+- name: "PowerVC Upgrade - Full Cluster Upgrade"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Perform full cluster rolling upgrade"
+      ibm.powervc.cli.upgrade:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 2: Force upgrade with verbose output
+- name: "PowerVC Upgrade - Force Upgrade"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Force cluster upgrade with verbose output"
+      ibm.powervc.cli.upgrade:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        force: "{{ upgrade_force }}"
+        verbose: "{{ upgrade_verbose }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 3: Upgrade skipping remote node upgrade
+- name: "PowerVC Upgrade - Skip Remote Node Upgrade"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Upgrade cluster, skip Novalink/cinder-image remote node upgrade"
+      ibm.powervc.cli.upgrade:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        skip_remote_node_upgrade: "{{ upgrade_skip_remote_node_upgrade }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 4: Pre-upgrade configuration tasks before Base OS upgrade
+- name: "PowerVC Upgrade - Pre-Upgrade Configuration"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Run pre-config tasks on node before Base OS upgrade"
+      ibm.powervc.cli.upgrade:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        preupgrade: "{{ upgrade_node_ip }}"
+        verbose: "{{ upgrade_verbose }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 5: Post-upgrade configuration tasks after Base OS upgrade
+- name: "PowerVC Upgrade - Post-Upgrade Configuration"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Run post-config tasks on node after Base OS upgrade"
+      ibm.powervc.cli.upgrade:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        postupgrade: "{{ upgrade_node_ip }}"
+        verbose: "{{ upgrade_verbose }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result

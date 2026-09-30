@@ -1,0 +1,131 @@
+---
+- name: Map LDAP group to admin role in ibm-default project
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: Assign pvcadmin group to admin role in ibm-default
+      ibm.powervc.cli.openstack_commands:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        os_username: "{{ os_username }}"
+        os_password: "{{ os_password }}"
+        state: present
+        role: "{{ role_mapping_role }}"
+        project: ibm-default
+        ldap_group: "{{ role_mapping_ldap_group }}"
+      register: result
+    - debug:
+        var: result.stdout_lines
+
+
+- name: Map LDAP group to admin role across all tenant projects
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: Assign pvcadmin group to admin role in all projects
+      ibm.powervc.cli.openstack_commands:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        os_username: "{{ os_username }}"
+        os_password: "{{ os_password }}"
+        state: present
+        role: "{{ role_mapping_role }}"
+        ldap_group: "{{ role_mapping_ldap_group }}"
+        all_projects: true
+      register: result
+    - debug:
+        var: result.stdout_lines
+    - debug:
+        var: result.projects_changed
+
+
+- name: Map LDAP group to viewer role in ibm-default project
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: Assign pvcview group to viewer role in ibm-default
+      ibm.powervc.cli.openstack_commands:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        os_username: "{{ os_username }}"
+        os_password: "{{ os_password }}"
+        state: present
+        role: viewer
+        project: ibm-default
+        ldap_group: "{{ role_mapping_ldap_group_viewer }}"
+      register: result
+    - debug:
+        var: result.stdout_lines
+
+
+- name: Map LDAP user to admin role in a project
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: Assign ldap_user to admin role
+      ibm.powervc.cli.openstack_commands:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        os_username: "{{ os_username }}"
+        os_password: "{{ os_password }}"
+        state: present
+        role: "{{ role_mapping_role }}"
+        project: "{{ role_mapping_project }}"
+        ldap_user: "{{ role_mapping_ldap_user }}"
+      register: result
+    - debug:
+        var: result.stdout_lines
+
+
+- name: Remove LDAP group role assignment
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: Remove pvcadmin group from admin role in ibm-default
+      ibm.powervc.cli.openstack_commands:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        os_username: "{{ os_username }}"
+        os_password: "{{ os_password }}"
+        state: absent
+        role: "{{ role_mapping_role }}"
+        project: ibm-default
+        ldap_group: "{{ role_mapping_ldap_group }}"
+      register: result
+    - debug:
+        var: result.stdout_lines
+
+
+- name: List role assignments for a project
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: Show role assignments for project
+      ibm.powervc.cli.openstack_commands:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        os_username: "{{ os_username }}"
+        os_password: "{{ os_password }}"
+        state: list
+        project: "{{ role_mapping_project }}"
+      register: result
+    - debug:
+        var: result.stdout_lines

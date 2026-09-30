@@ -12,63 +12,112 @@ author:
     - Fredolin B Brone (@Fredolin-B-Brone1)
 short_description: Manage PowerVC scale configuration settings
 description:
-  - Manages scale tuning parameters for PowerVC management and novalink nodes
-  - These settings are intended for high scale environments and have memory impact
-  - Uses settings defined in /powervcdata/etc/oslo/scale.conf
-  - Supports listing current settings, applying scale configurations, and reverting changes
-  - Can set service-specific configurations for supported PowerVC services
+  - Manages scale tuning parameters for PowerVC management and compute nodes.
+  - Settings are defined in /powervcdata/etc/oslo/scale_params.conf and are
+    organised into tiers (small / medium / large).
+  - Supports listing current settings, applying scale configurations,
+    reverting to defaults, and validating the configuration file.
 notes:
-  - This module requires SSH access to the PowerVC controller
-  - Scale configuration changes may require service restarts to take effect
-  - Settings are applied from /powervcdata/etc/oslo/scale.conf
-  - Use C(state=show) to view current settings without making changes
+  - This module requires SSH access to the PowerVC controller.
+  - Scale configuration changes may require service restarts to take effect.
+  - Use C(state=show) to view current settings without making changes.
+  - Use C(state=validate) to check scale_params.conf syntax without applying.
+  - C(quiet) defaults to C(true) so Ansible runs non-interactively; set
+    C(quiet=false) only when running manually and a confirmation prompt is desired.
+  - All flags are top-level siblings on the CLI; none is a sub-option of another.
+    C(--env-type), C(--dry-run), C(--verbose), C(--force), C(--no-restart), and
+    C(--restart-timeout) are optional modifiers that accompany C(--apply) but are
+    accepted by the parser independently.
 options:
   login_host:
     description:
-      - IP address or hostname of the PowerVC Controller
+      - IP address or hostname of the PowerVC controller.
     required: true
     type: str
   login_user:
     description:
-      - SSH username (typically C(pvcroot))
+      - SSH username (typically C(pvcroot)).
     required: true
     type: str
   login_password:
     description:
-      - Password for the SSH user
+      - Password for the SSH user.
     required: true
     type: str
     no_log: true
   state:
     description:
-      - Desired state of the scale configuration
-      - C(show) - List current scale settings (read-only, no changes made)
-      - C(present) - Apply scale settings from scale.conf or set service configuration
-      - C(absent) - Revert configuration to state before scale settings were applied
+      - Desired action to perform.
+      - C(show) - List current live values vs configured values (read-only).
+      - C(present) - Apply scale settings for the tier given by C(env_type).
+      - C(absent) - Restore all parameters to their default out-of-box values.
+      - C(validate) - Validate scale_params.conf syntax without applying.
     required: true
     type: str
-    choices: ['show', 'present', 'absent']
-  service:
+    choices: ['show', 'present', 'absent', 'validate']
+  env_type:
     description:
-      - Service name to configure
+      - Scale tier to use with C(state=present).
+      - When omitted, the CLI applies its built-in default (large).
+      - C(default) explicitly passes no C(--env-type) flag, letting the CLI decide.
     required: false
     type: str
-    choices: ['nova-compute-svc']
-  memory_max:
+    choices: ['default', 'small', 'medium', 'large']
+  node_type:
     description:
-      - MemoryMax value for the service unit
+      - Restrict C(state=show) output to one node role (default: all).
     required: false
     type: str
-  host:
+    choices: ['all', 'controller', 'novalink', 'hmc_compute', 'image_node']
+  section:
     description:
-      - Novalink host to target
+      - Restrict C(state=show) output to a specific section name.
+      - Use C(section=help) to list all available section names.
     required: false
     type: str
-  restart:
+  dry_run:
     description:
-      - Whether to restart the service after applying configuration
+      - With C(state=present): run the full fetch + diff cycle and print the
+        preview table, but do NOT write any changes and do NOT prompt for
+        confirmation. Exits after step 4.
     required: false
     type: bool
+    default: false
+  verbose:
+    description:
+      - Print each configuration change as it is applied.
+    required: false
+    type: bool
+    default: false
+  quiet:
+    description:
+      - Suppress confirmation prompts (for automation / cron).
+      - Defaults to C(true) so Ansible runs non-interactively.
+    required: false
+    type: bool
+    default: true
+  force:
+    description:
+      - Bypass idempotency check; re-apply even if env_type already matches
+        the running configuration.
+    required: false
+    type: bool
+    default: false
+  no_restart:
+    description:
+      - Write config files but skip all service restarts. The restart plan is
+        still shown. Services continue running on old settings until restarted
+        manually or by re-running without this flag.
+    required: false
+    type: bool
+    default: false
+  restart_timeout:
+    description:
+      - Maximum seconds to wait for each Pacemaker resource to come up after a
+        restart (default: 120). Per-resource defaults (galera 90s, rabbitmq
+        150s, others 60s) are used unless this flag lowers the ceiling.
+    required: false
+    type: int
 '''
 
 EXAMPLES = '''
@@ -78,7 +127,7 @@ EXAMPLES = '''
     - ../vars/powervc.yml
     - ../vars/secret.yml
   tasks:
-    - name: List current scale settings
+    - name: List all scale settings
       ibm.powervc.cli.scale_config:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
@@ -91,18 +140,80 @@ EXAMPLES = '''
         var: result.stdout_lines
 
 
-- name: Apply scale settings from scale.conf
+- name: List scale settings filtered by node type and section
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
   tasks:
-    - name: Apply all scale settings
+    - name: Show controller settings for a specific section
+      ibm.powervc.cli.scale_config:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: show
+        node_type: controller
+        section: nova
+      register: result
+
+    - name: Display filtered settings
+      debug:
+        var: result.stdout_lines
+
+
+- name: Validate scale_params.conf
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: Validate config syntax
+      ibm.powervc.cli.scale_config:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: validate
+      register: result
+
+    - name: Display validation result
+      debug:
+        var: result.stdout_lines
+
+
+- name: Dry-run apply for large tier
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: Preview large-tier changes without writing anything
       ibm.powervc.cli.scale_config:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
         state: present
+        env_type: large
+        dry_run: true
+      register: result
+
+    - name: Display preview
+      debug:
+        var: result.stdout_lines
+
+
+- name: Apply scale settings for medium tier
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+  tasks:
+    - name: Apply medium-tier settings quietly
+      ibm.powervc.cli.scale_config:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: present
+        env_type: medium
       register: result
 
     - name: Display apply result
@@ -110,78 +221,58 @@ EXAMPLES = '''
         var: result.stdout_lines
 
 
-- name: Configure nova-compute-svc
+- name: Apply scale settings with verbose output and no restart
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
   tasks:
-    - name: Set MemoryMax for nova-compute-svc
+    - name: Apply large-tier settings, skip restarts
       ibm.powervc.cli.scale_config:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
         state: present
-        service: "{{ scale_config_service }}"
-        memory_max: "{{ scale_config_memory_max }}"
+        env_type: large
+        verbose: true
+        no_restart: true
+        restart_timeout: 180
       register: result
 
-    - name: Display configure result
+    - name: Display apply result
       debug:
         var: result.stdout_lines
 
 
-- name: Configure nova-compute-svc on specific host
+- name: Force re-apply with custom restart timeout
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
   tasks:
-    - name: Set MemoryMax for nova-compute-svc on a novalink host
+    - name: Re-apply even if env_type already matches
       ibm.powervc.cli.scale_config:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
         state: present
-        service: "{{ scale_config_service }}"
-        memory_max: "{{ scale_config_memory_max }}"
-        host: "{{ scale_config_host }}"
+        env_type: large
+        force: true
+        restart_timeout: 200
       register: result
 
-    - name: Display host-specific result
+    - name: Display result
       debug:
         var: result.stdout_lines
 
 
-- name: Configure nova-compute-svc and restart
+- name: Revert scale settings to defaults
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
   tasks:
-    - name: Set MemoryMax and restart nova-compute-svc
-      ibm.powervc.cli.scale_config:
-        login_host: "{{ ipaddress }}"
-        login_user: "{{ pvc_user }}"
-        login_password: "{{ pvcroot_password }}"
-        state: present
-        service: "{{ scale_config_service }}"
-        memory_max: "{{ scale_config_memory_max }}"
-        restart: true
-      register: result
-
-    - name: Display restart result
-      debug:
-        var: result.stdout_lines
-
-
-- name: Revert scale settings
-  hosts: localhost
-  vars_files:
-    - ../vars/powervc.yml
-    - ../vars/secret.yml
-  tasks:
-    - name: Revert all scale configuration
+    - name: Restore out-of-box values on all nodes
       ibm.powervc.cli.scale_config:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
@@ -196,15 +287,15 @@ EXAMPLES = '''
 
 RETURN = '''
 changed:
-  description: Whether the scale configuration was modified
+  description: Whether the scale configuration was modified.
   returned: always
   type: bool
 stdout:
-  description: Raw command output as a single string
+  description: Raw command output as a single string.
   returned: always
   type: str
 stdout_lines:
-  description: Command output split into lines
+  description: Command output split into lines.
   returned: always
   type: list
   elements: str
@@ -258,9 +349,19 @@ def clean_output(lines):
     return cleaned
 
 
-def handle_show(module, login_host, login_user, login_password):
+def handle_show(module, login_host, login_user, login_password,
+                node_type, section):
 
     cmd = "powervc-scale-config --list"
+
+    if node_type and node_type != "all":
+        cmd += f" --node-type {node_type}"
+
+    if section:
+        cmd += f" --section {section}"
+
+    if module.check_mode:
+        return result_ok([f"[CHECK MODE] Would run: {cmd}"], changed=False)
 
     lines = run_cmd(module, login_host, login_user, login_password, cmd)
 
@@ -272,71 +373,83 @@ def handle_show(module, login_host, login_user, login_password):
     )
 
 
-def handle_present(module, login_host, login_user, login_password, service, memory_max, restart, host):
+def handle_validate(module, login_host, login_user, login_password):
 
-    # Apply settings from scale.conf
-    if not service:
-        cmd = "powervc-scale-config --apply"
-
-    # Update service configuration
-    else:
-        cmd = f"powervc-scale-config --set {service}"
-
-        has_parameter = False
-
-        if memory_max:
-            cmd += f" MemoryMax={memory_max}"
-            has_parameter = True
-
-        if host:
-            cmd += f" host={host}"
-            has_parameter = True
-
-        if restart is not None:
-            cmd += f" restart={'true' if restart else 'false'}"
-            has_parameter = True
-
-        if not has_parameter:
-            module.fail_json(
-                msg=(
-                    "When service is specified, at least one of "
-                    "memory_max, host, or restart must be provided."
-                )
-            )
+    cmd = "powervc-scale-config --validate"
 
     if module.check_mode:
-        return result_ok(["[CHECK MODE] Would apply scale configuration"], changed=True)
+        return result_ok([f"[CHECK MODE] Would run: {cmd}"], changed=False)
 
-    lines = run_cmd(
-        module,
-        login_host,
-        login_user,
-        login_password,
-        cmd
-    )
+    lines = run_cmd(module, login_host, login_user, login_password, cmd)
 
     cleaned = clean_output(lines)
 
     return result_ok(
-        cleaned if cleaned else ["Scale configuration applied successfully"],
-        changed=True
+        cleaned if cleaned else ["scale_params.conf is valid"],
+        changed=False
     )
 
 
-def handle_absent(module, login_host, login_user, login_password):
+def handle_present(module, login_host, login_user, login_password,
+                   env_type, dry_run, verbose, quiet, force,
+                   no_restart, restart_timeout):
+
+    cmd = "powervc-scale-config --apply"
+
+    if env_type and env_type != "default":
+        cmd += f" --env-type {env_type}"
+
+    if dry_run:
+        cmd += " --dry-run"
+
+    if verbose:
+        cmd += " --verbose"
+
+    if quiet:
+        cmd += " -q"
+
+    if force:
+        cmd += " --force"
+
+    if no_restart:
+        cmd += " --no-restart"
+
+    if restart_timeout is not None:
+        cmd += f" --restart-timeout {restart_timeout}"
 
     if module.check_mode:
-        return result_ok(["[CHECK MODE] Would revert scale configuration"], changed=True)
+        return result_ok(
+            [f"[CHECK MODE] Would run: {cmd}"],
+            changed=not dry_run
+        )
+
+    lines = run_cmd(module, login_host, login_user, login_password, cmd)
+
+    cleaned = clean_output(lines)
+
+    # dry-run reads state but writes nothing
+    changed = not dry_run
+
+    return result_ok(
+        cleaned if cleaned else ["Scale configuration applied successfully"],
+        changed=changed
+    )
+
+
+def handle_absent(module, login_host, login_user, login_password, quiet):
 
     cmd = "powervc-scale-config --revert"
 
-    lines = run_cmd(
-        module,
-        login_host,
-        login_user,
-        login_password,
-        cmd
-    )
+    if quiet:
+        cmd += " -q"
+
+    if module.check_mode:
+        return result_ok(
+            [f"[CHECK MODE] Would run: {cmd}"],
+            changed=True
+        )
+
+    lines = run_cmd(module, login_host, login_user, login_password, cmd)
 
     cleaned = clean_output(lines)
 
@@ -357,17 +470,27 @@ def main():
             state=dict(
                 type="str",
                 required=True,
-                choices=["present", "absent", "show"]
+                choices=["present", "absent", "show", "validate"]
             ),
 
-            service=dict(
+            # --apply flags
+            env_type=dict(
                 type="str",
-                choices=["nova-compute-svc"]
+                choices=["default", "small", "medium", "large"]
             ),
+            dry_run=dict(type="bool", default=False),
+            verbose=dict(type="bool", default=False),
+            quiet=dict(type="bool", default=True),
+            force=dict(type="bool", default=False),
+            no_restart=dict(type="bool", default=False),
+            restart_timeout=dict(type="int"),
 
-            memory_max=dict(type="str"),
-            host=dict(type="str"),
-            restart=dict(type="bool"),
+            # --list flags
+            node_type=dict(
+                type="str",
+                choices=["all", "controller", "novalink", "hmc_compute", "image_node"]
+            ),
+            section=dict(type="str"),
         ),
         supports_check_mode=True
     )
@@ -378,11 +501,6 @@ def main():
 
     state = module.params["state"]
 
-    service = module.params.get("service")
-    memory_max = module.params.get("memory_max")
-    host = module.params.get("host")
-    restart = module.params.get("restart")
-
     if state == "present":
 
         result = handle_present(
@@ -390,10 +508,13 @@ def main():
             login_host,
             login_user,
             login_password,
-            service,
-            memory_max,
-            restart,
-            host
+            env_type=module.params.get("env_type"),
+            dry_run=module.params["dry_run"],
+            verbose=module.params["verbose"],
+            quiet=module.params["quiet"],
+            force=module.params["force"],
+            no_restart=module.params["no_restart"],
+            restart_timeout=module.params.get("restart_timeout"),
         )
 
     elif state == "absent":
@@ -402,7 +523,8 @@ def main():
             module,
             login_host,
             login_user,
-            login_password
+            login_password,
+            quiet=module.params["quiet"],
         )
 
     elif state == "show":
@@ -411,7 +533,18 @@ def main():
             module,
             login_host,
             login_user,
-            login_password
+            login_password,
+            node_type=module.params.get("node_type"),
+            section=module.params.get("section"),
+        )
+
+    elif state == "validate":
+
+        result = handle_validate(
+            module,
+            login_host,
+            login_user,
+            login_password,
         )
 
     else:
