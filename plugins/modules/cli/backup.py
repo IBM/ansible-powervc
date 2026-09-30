@@ -124,6 +124,8 @@ msg:
   type: str
 '''
 
+import shlex
+
 from ansible_collections.ibm.powervc.plugins.module_utils.connection import Connection
 from ansible.module_utils.basic import AnsibleModule
 
@@ -139,7 +141,7 @@ def construct_command(cluster_name, mode=None, preserve=None):
     '''
     command = None
     if cluster_name:
-        command = f"powervc-opsmgr backup -c {cluster_name}"
+        command = f"powervc-opsmgr backup -c {shlex.quote(cluster_name)}"
         if mode == "silent":
             command += " --silent"
         elif mode == "verbose":

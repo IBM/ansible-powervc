@@ -32,6 +32,7 @@
         quiet: true
         ldap_url: "{{ ldap_url }}"
         ldap_user: "{{ ldap_bind_user }}"
+        ldap_password: "{{ ldap_password }}"
         chase_referrals: "{{ ldap_chase_referrals }}"
         user_tree_dn: "{{ ldap_user_tree_dn }}"
         group_tree_dn: "{{ ldap_group_tree_dn }}"

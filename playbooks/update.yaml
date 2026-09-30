@@ -1,0 +1,367 @@
+---
+# Example 1: List controller-node ifixes
+- name: "PowerVC Update - List Controller Ifixes"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Get list of applied ifixes on controller nodes"
+      ibm.powervc.cli.update:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        list_ifixes: true
+        state: present
+      register: result
+
+    - name: "Show ifixes"
+      debug:
+        var: result
+
+
+# Example 2: List remote-node ifixes
+- name: "PowerVC Update - List Remote-Node Ifixes"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Get list of applied ifixes on remote nodes (novalinks / image nodes)"
+      ibm.powervc.cli.update:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        remote_node: true
+        list_ifixes: true
+        state: present
+      register: result
+
+    - name: "Show remote-node ifixes"
+      debug:
+        var: result
+
+
+# Example 3: Rolling upgrade on a specific controller node
+- name: "PowerVC Update - Rolling Upgrade"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Perform rolling upgrade on specific controller node"
+      ibm.powervc.cli.update:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        node: "{{ update_node }}"
+        verbose: "{{ update_verbose }}"
+        state: present
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 4: Apply ifix on a specific controller node
+- name: "PowerVC Update - Apply Ifix on Controller Node"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Apply ifix ISO on specific controller node"
+      ibm.powervc.cli.update:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        node: "{{ update_node }}"
+        ifix_isopath: "{{ update_ifix_isopath }}"
+        force: "{{ update_force }}"
+        state: present
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 5: Apply ifix on all remote nodes (novalinks + image nodes)
+- name: "PowerVC Update - Apply Ifix on All Remote Nodes"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Apply ifix on all novalinks and image nodes"
+      ibm.powervc.cli.update:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        remote_node: true
+        all_remotenodes: true
+        ifix_isopath: "{{ update_ifix_isopath }}"
+        state: present
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 6: Apply ifix on all novalink nodes only
+- name: "PowerVC Update - Apply Ifix on All Novalinks"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Apply ifix on all novalink nodes"
+      ibm.powervc.cli.update:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        remote_node: true
+        all_novalinks: true
+        ifix_isopath: "{{ update_ifix_isopath }}"
+        state: present
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 7: Apply ifix on all image nodes only
+- name: "PowerVC Update - Apply Ifix on All Image Nodes"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Apply ifix on all image nodes"
+      ibm.powervc.cli.update:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        remote_node: true
+        all_imagenodes: true
+        ifix_isopath: "{{ update_ifix_isopath }}"
+        state: present
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 8: Apply ifix on specific remote nodes
+- name: "PowerVC Update - Apply Ifix on Specific Remote Nodes"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Apply ifix only on specified remote node IPs"
+      ibm.powervc.cli.update:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        remote_node: true
+        apply_specificnodes: "{{ update_apply_specificnodes }}"
+        ifix_isopath: "{{ update_ifix_isopath }}"
+        state: present
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 9: Apply ifix on all remote nodes except specified ones
+- name: "PowerVC Update - Apply Ifix Skipping Specific Remote Nodes"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Apply ifix on all remote nodes except the ones listed in skip_remotenodes_ifix"
+      ibm.powervc.cli.update:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        remote_node: true
+        skip_remotenodes_ifix: "{{ update_skip_remotenodes_ifix }}"
+        ifix_isopath: "{{ update_ifix_isopath }}"
+        state: present
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 10: Prepare system with local ISO path
+- name: "PowerVC Update - Prepare System (Local ISO)"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Run ISO preparation from local path (setup-iso and opsmgr-only update)"
+      ibm.powervc.cli.update:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        prepare_isopath: "{{ update_prepare_isopath }}"
+        verbose: "{{ update_verbose }}"
+        state: present
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 11: Prepare system by downloading ISO from URL
+- name: "PowerVC Update - Prepare System (URL Download)"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Download ISO from URL and run setup-iso and opsmgr-only update"
+      ibm.powervc.cli.update:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        prepare_isopath: "{{ update_prepare_url }}"
+        http_username: "{{ update_http_username }}"
+        http_password: "{{ update_http_password }}"
+        state: present
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 12: Download ISO only (no setup-iso or opsmgr update)
+- name: "PowerVC Update - Download ISO Only"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Download ISO to destination directory without running update"
+      ibm.powervc.cli.update:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        prepare_isopath: "{{ update_prepare_url }}"
+        download_only: true
+        download_destination: "{{ update_download_destination }}"
+        http_username: "{{ update_http_username }}"
+        http_password: "{{ update_http_password }}"
+        state: present
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 13: Cleanup ISO (state=absent)
+- name: "PowerVC Update - Cleanup ISO"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Perform ISO cleanup"
+      ibm.powervc.cli.update:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        confirm: "yes"
+        state: absent
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 14: Offline mode update
+- name: "PowerVC Update - Offline Mode"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Perform offline update (all API and UI calls blocked)"
+      ibm.powervc.cli.update:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        offline_mode: "{{ update_offline_mode }}"
+        verbose: "{{ update_verbose }}"
+        state: present
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 15: Rolling upgrade skipping remote node upgrade
+- name: "PowerVC Update - Skip Remote Node Upgrade"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Rolling upgrade, skip Novalink/compute/cinder-backup remote nodes"
+      ibm.powervc.cli.update:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        node: "{{ update_node }}"
+        skip_remote_node_upgrade: "{{ update_skip_remote_node_upgrade }}"
+        state: present
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result

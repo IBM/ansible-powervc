@@ -1,0 +1,170 @@
+---
+# external_backup.yaml
+#
+# All external-backup scenarios in one file.  Run only the play you need by
+# using ansible-playbook --tags or by referencing this file directly and
+# letting Ansible prompt you to choose the target type.
+#
+# Play 1  — Export only to NFS        (existing local backup → NFS share)
+# Play 2  — Export only to COS        (existing local backup → IBM COS bucket)
+# Play 3  — Backup then export to NFS (run backup first, then copy to NFS)
+# Play 4  — Backup then export to COS (run backup first, then upload to COS)
+#
+# Required vars (vars/powervc.yml + vars/secret.yml):
+#   ipaddress, pvc_user, pvcroot_password   — PowerVC connection
+#   cluster_name                            — cluster to back up (plays 3 & 4)
+#   ext_backup_dir                          — local backup parent directory
+#   ext_backup_nfs_server                   — NFS server hostname or IP
+#   ext_backup_nfs_export                   — exported NFS path
+#   ext_backup_nfs_mount_point              — temporary mount point on the controller
+#   ext_backup_nfs_options                  — mount -o options (empty = system defaults)
+#   ext_backup_cos_endpoint                 — COS S3-compatible endpoint URL
+#   ext_backup_cos_bucket                   — target COS bucket name
+#   ext_backup_cos_access_key               — HMAC access key  (store in secret.yml)
+#   ext_backup_cos_secret_key               — HMAC secret key  (store in secret.yml)
+#   ext_backup_cos_prefix   (optional)      — key prefix / folder inside the bucket
+#   preserve                (optional)      — local backups to keep (plays 3 & 4)
+
+# =============================================================================
+# Play 1 — Export only to NFS
+# Copies the latest existing local backup to an NFS share.
+# Does NOT run a new backup first.
+# =============================================================================
+- name: "Export existing backup to NFS"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Copy PowerVC backup to NFS share (mount, copy, unmount)"
+      ibm.powervc.cli.external_backup:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        backup_dir: "{{ ext_backup_dir }}"
+        target_type: "nfs"
+        nfs_server: "{{ ext_backup_nfs_server }}"
+        nfs_export: "{{ ext_backup_nfs_export }}"
+        nfs_mount_point: "{{ ext_backup_nfs_mount_point }}"
+        nfs_options: "{{ ext_backup_nfs_options }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+# =============================================================================
+# Play 2 — Export only to IBM Cloud Object Storage
+# Uploads the latest existing local backup to an IBM COS bucket.
+# Does NOT run a new backup first.
+# =============================================================================
+- name: "Export existing backup to IBM Cloud Object Storage"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Upload PowerVC backup to IBM COS bucket"
+      ibm.powervc.cli.external_backup:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        backup_dir: "{{ ext_backup_dir }}"
+        target_type: "cos"
+        cos_endpoint: "{{ ext_backup_cos_endpoint }}"
+        cos_bucket: "{{ ext_backup_cos_bucket }}"
+        cos_access_key: "{{ ext_backup_cos_access_key }}"
+        cos_secret_key: "{{ ext_backup_cos_secret_key }}"
+        cos_prefix: "{{ ext_backup_cos_prefix }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+# =============================================================================
+# Play 3 — Run PowerVC backup then copy to NFS
+# Step 1 runs powervc-opsmgr backup; step 2 copies that backup to NFS.
+# Step 2 only runs when step 1 succeeds.
+# =============================================================================
+- name: "Run PowerVC backup and copy to NFS"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Step 1 — Run PowerVC backup"
+      ibm.powervc.cli.backup:
+        login_host:     "{{ ipaddress }}"
+        login_user:     "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster:        "{{ cluster_name }}"
+        preserve:       "{{ preserve | default(omit) }}"
+      register: backup_result
+
+    - name: "Show backup output"
+      debug:
+        var: backup_result
+
+    - name: "Step 2 — Copy latest backup to NFS share (mount, copy, unmount)"
+      ibm.powervc.cli.external_backup:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        backup_dir: "{{ ext_backup_dir }}"
+        target_type: "nfs"
+        nfs_server: "{{ ext_backup_nfs_server }}"
+        nfs_export: "{{ ext_backup_nfs_export }}"
+        nfs_mount_point: "{{ ext_backup_nfs_mount_point }}"
+        nfs_options: "{{ ext_backup_nfs_options }}"
+      register: export_result
+
+    - name: "Show export result"
+      debug:
+        var: export_result
+
+# =============================================================================
+# Play 4 — Run PowerVC backup then upload to IBM COS
+# Step 1 runs powervc-opsmgr backup; step 2 uploads that backup to COS.
+# Step 2 only runs when step 1 succeeds.
+# =============================================================================
+- name: "Run PowerVC backup and upload to IBM COS"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Step 1 — Run PowerVC backup"
+      ibm.powervc.cli.backup:
+        login_host:     "{{ ipaddress }}"
+        login_user:     "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster:        "{{ cluster_name }}"
+        preserve:       "{{ preserve | default(omit) }}"
+      register: backup_result
+
+    - name: "Show backup output"
+      debug:
+        var: backup_result
+
+    - name: "Step 2 — Upload PowerVC backup to IBM COS bucket"
+      ibm.powervc.cli.external_backup:
+        login_host:     "{{ ipaddress }}"
+        login_user:     "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        backup_dir:     "{{ ext_backup_dir }}"
+        target_type:    "cos"
+        cos_endpoint:   "{{ ext_backup_cos_endpoint }}"
+        cos_bucket:     "{{ ext_backup_cos_bucket }}"
+        cos_access_key: "{{ ext_backup_cos_access_key }}"
+        cos_secret_key: "{{ ext_backup_cos_secret_key }}"
+        cos_prefix:     "{{ ext_backup_cos_prefix }}"
+      register: export_result
+
+    - name: "Show export result"
+      debug:
+        var: export_result
