@@ -48,7 +48,7 @@ def create_module(volume):
 
 def test_all_volume_snapshot():
 
-    module = (
+    module = create_module(
         {
             "type": "All"
         }

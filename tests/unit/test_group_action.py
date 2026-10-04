@@ -56,7 +56,10 @@ def test_group_action_show_success():
     )
 
     group_action.group_action = mock.Mock(
-        return_value={"changed": False}
+        return_value=(
+            {"id": TEST_GROUP_ID},
+            False,
+        )
     )
 
     module.run()
