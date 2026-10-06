@@ -12,6 +12,11 @@
         login_password: "{{ pvcroot_password }}"
         os_username: "{{ os_username }}"
         os_password: "{{ os_password }}"
+        os_auth_url: "{{ os_auth_url | default(omit) }}"
+        os_project: "{{ os_project }}"
+        os_user_domain_name: "{{ os_user_domain_name }}"
+        os_project_domain_name: "{{ os_project_domain_name }}"
+        os_identity_api_version: "{{ os_identity_api_version }}"
         state: present
         role: "{{ role_mapping_role }}"
         project: ibm-default
@@ -34,6 +39,11 @@
         login_password: "{{ pvcroot_password }}"
         os_username: "{{ os_username }}"
         os_password: "{{ os_password }}"
+        os_auth_url: "{{ os_auth_url | default(omit) }}"
+        os_project: "{{ os_project }}"
+        os_user_domain_name: "{{ os_user_domain_name }}"
+        os_project_domain_name: "{{ os_project_domain_name }}"
+        os_identity_api_version: "{{ os_identity_api_version }}"
         state: present
         role: "{{ role_mapping_role }}"
         ldap_group: "{{ role_mapping_ldap_group }}"
@@ -58,6 +68,11 @@
         login_password: "{{ pvcroot_password }}"
         os_username: "{{ os_username }}"
         os_password: "{{ os_password }}"
+        os_auth_url: "{{ os_auth_url | default(omit) }}"
+        os_project: "{{ os_project }}"
+        os_user_domain_name: "{{ os_user_domain_name }}"
+        os_project_domain_name: "{{ os_project_domain_name }}"
+        os_identity_api_version: "{{ os_identity_api_version }}"
         state: present
         role: viewer
         project: ibm-default
@@ -80,6 +95,11 @@
         login_password: "{{ pvcroot_password }}"
         os_username: "{{ os_username }}"
         os_password: "{{ os_password }}"
+        os_auth_url: "{{ os_auth_url | default(omit) }}"
+        os_project: "{{ os_project }}"
+        os_user_domain_name: "{{ os_user_domain_name }}"
+        os_project_domain_name: "{{ os_project_domain_name }}"
+        os_identity_api_version: "{{ os_identity_api_version }}"
         state: present
         role: "{{ role_mapping_role }}"
         project: "{{ role_mapping_project }}"
@@ -102,6 +122,11 @@
         login_password: "{{ pvcroot_password }}"
         os_username: "{{ os_username }}"
         os_password: "{{ os_password }}"
+        os_auth_url: "{{ os_auth_url | default(omit) }}"
+        os_project: "{{ os_project }}"
+        os_user_domain_name: "{{ os_user_domain_name }}"
+        os_project_domain_name: "{{ os_project_domain_name }}"
+        os_identity_api_version: "{{ os_identity_api_version }}"
         state: absent
         role: "{{ role_mapping_role }}"
         project: ibm-default
@@ -124,6 +149,11 @@
         login_password: "{{ pvcroot_password }}"
         os_username: "{{ os_username }}"
         os_password: "{{ os_password }}"
+        os_auth_url: "{{ os_auth_url | default(omit) }}"
+        os_project: "{{ os_project }}"
+        os_user_domain_name: "{{ os_user_domain_name }}"
+        os_project_domain_name: "{{ os_project_domain_name }}"
+        os_identity_api_version: "{{ os_identity_api_version }}"
         state: list
         project: "{{ role_mapping_project }}"
       register: result

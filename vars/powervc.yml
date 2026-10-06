@@ -165,8 +165,13 @@ ext_backup_cos_bucket: ""                 # Target COS bucket name
 ext_backup_cos_prefix: ""                 # Key prefix / folder inside the bucket (optional)
 # ext_backup_cos_access_key and ext_backup_cos_secret_key must be stored in vars/secret.yml
 
-# Role Mapping Variables (role_mapping module)
-os_username: "servicebroker"    # OpenStack username for running openstack CLI (typically servicebroker)
+# Role Mapping Variables (openstack_commands module)
+os_username: ""          # OpenStack username (typically servicebroker or pvcroot)
+os_project: ""                 # Token scope: "service" for servicebroker, target project for pvcroot
+os_auth_url: ""                       # Leave blank to auto-derive as https://<ipaddress>:5000/v3
+os_user_domain_name: ""        # Keystone user domain (Default for local accounts)
+os_project_domain_name: ""     # Keystone project domain
+os_identity_api_version: ""          # Keystone API version
 # os_password must be stored in vars/secret.yml (no_log: true)
 role_mapping_role: "admin"       # OpenStack role to assign, e.g. admin, viewer, member
 role_mapping_project: "ibm-default"  # Target OpenStack project

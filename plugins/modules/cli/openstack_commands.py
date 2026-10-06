@@ -15,9 +15,12 @@ description:
   - This module maps LDAP users or groups to OpenStack/PowerVC roles and projects
     by running C(openstack role add) and C(openstack role remove) commands on the
     PowerVC Controller over SSH.
-  - All OpenStack CLI calls are executed after sourcing C(/opt/ibm/powervc/powervcrc)
-    and supplying the service-broker credentials (C(os_username) / C(os_password))
-    non-interactively via environment variables — no manual shell sourcing is required.
+  - All OpenStack CLI calls supply the required OpenStack environment variables
+    (C(OS_AUTH_URL), C(OS_USERNAME), C(OS_PASSWORD), etc.) via the SSH channel
+    C(env) request (Paramiko C(update_environment)) — variables are injected at
+    the SSH protocol level, completely bypassing the remote login shell.  No
+    shell sourcing, C(export) statements, or absolute command paths are used,
+    so the module is fully compatible with C(rbash).
   - C(state=present) is B(idempotent). Before adding a role the module checks whether
     the assignment already exists via C(openstack role assignment list). If the
     assignment is already present it returns C(changed=False) without running
@@ -52,7 +55,7 @@ options:
   os_username:
     description:
       - OpenStack username for running the C(openstack) CLI commands.
-        This is typically C(servicebroker).
+        Typically C(servicebroker) or C(pvcroot).
     required: true
     type: str
   os_password:
@@ -62,6 +65,33 @@ options:
     required: true
     type: str
     no_log: true
+  os_auth_url:
+    description:
+      - Full Keystone endpoint, e.g. C(https://9.47.64.53:5000/v3).
+      - When omitted, derived automatically as C(https://<login_host>:5000/v3).
+    type: str
+  os_project:
+    description:
+      - OpenStack project scope for the authentication token.
+      - Use C(service) for C(servicebroker) (the default) or the target
+        project name (e.g. C(ibm-default)) for C(pvcroot).
+    type: str
+    default: service
+  os_user_domain_name:
+    description:
+      - Keystone user domain name. Defaults to C(Default).
+    type: str
+    default: Default
+  os_project_domain_name:
+    description:
+      - Keystone project domain name. Defaults to C(Default).
+    type: str
+    default: Default
+  os_identity_api_version:
+    description:
+      - Keystone API version. Defaults to C(3).
+    type: str
+    default: '3'
   state:
     description:
       - C(present) — ensure the role assignment exists (idempotent).
@@ -101,9 +131,14 @@ options:
     type: bool
     default: false
 notes:
-  - The module sources C(/opt/ibm/powervc/powervcrc) and exports C(OS_USERNAME)
-    and C(OS_PASSWORD) before each C(openstack) call so that all commands run
-    with the correct Keystone endpoint and credentials.
+  - The module injects C(OS_AUTH_URL), C(OS_USERNAME), C(OS_PASSWORD),
+    C(OS_PROJECT_NAME), C(OS_USER_DOMAIN_NAME), C(OS_PROJECT_DOMAIN_NAME),
+    and C(OS_IDENTITY_API_VERSION) directly into the command string so they
+    reach the C(openstack) process regardless of C(sshd) C(AcceptEnv) settings.
+    Supply any of the C(os_auth_url), C(os_project), C(os_user_domain_name),
+    C(os_project_domain_name), or C(os_identity_api_version) parameters to
+    override the defaults. Every C(openstack) call also carries C(--insecure)
+    to handle PowerVC's self-signed TLS certificate.
   - Role assignments in OpenStack are additive — assigning a role that already
     exists produces no error but the module detects this via
     C(openstack role assignment list) and avoids issuing a redundant
@@ -283,41 +318,49 @@ from ansible_collections.ibm.powervc.plugins.module_utils.connection import Conn
 # ibm-default is handled separately (explicit first call in the reference script).
 _SKIP_PROJECTS = frozenset({'powervm', 'service'})
 
-# Source line prepended to every openstack CLI command.
-_SOURCE_PVC = '. /opt/ibm/powervc/powervcrc'
 
+def _os_env_dict(os_auth_url, os_username, os_password, os_project,
+                 os_user_domain_name, os_project_domain_name,
+                 os_identity_api_version):
+    '''Return a dict of OpenStack env vars to prepend to the command string.
 
-def _os_env_prefix(os_username, os_password):
-    '''Return the shell env-var export fragment for OpenStack credentials.
-
-    Single-quoting os_password handles most special characters; the caller
-    must ensure os_password does not itself contain a single-quote (the
-    AnsibleModule no_log flag protects it from logs).
+    All values are caller-supplied; no defaults are applied here.
+    ``PYTHONHTTPSVERIFY=0`` disables Python TLS verification for the
+    self-signed PowerVC certificate.
     '''
-    safe_pw = os_password.replace("'", "'\\''")
-    return (
-        f"export OS_USERNAME='{os_username}'; "
-        f"export OS_PASSWORD='{safe_pw}'"
-    )
+    return {
+        'OS_AUTH_URL': os_auth_url,
+        'OS_USERNAME': os_username,
+        'OS_PASSWORD': os_password,
+        'OS_PROJECT_NAME': os_project,
+        'OS_USER_DOMAIN_NAME': os_user_domain_name,
+        'OS_PROJECT_DOMAIN_NAME': os_project_domain_name,
+        'OS_IDENTITY_API_VERSION': os_identity_api_version,
+        'PYTHONHTTPSVERIFY': '0',
+    }
 
 
-def _wrap(os_username, os_password, openstack_cmd):
-    '''Wrap an openstack CLI command with source + credential exports.'''
-    env = _os_env_prefix(os_username, os_password)
-    return f"{_SOURCE_PVC} && {env} && {openstack_cmd}"
+def _wrap(openstack_cmd):
+    '''Append ``--insecure`` to an openstack CLI command string.
+
+    The OpenStack env vars are passed separately via the SSH channel
+    ``env`` parameter — no shell preamble is required here.
+    ``--insecure`` disables TLS certificate verification for PowerVC's
+    self-signed certificate.
+    '''
+    return f"{openstack_cmd} --insecure"
 
 
-def _run(module, host, user, password, cmd):
-    '''Execute cmd via SSH and return (rc, lines).'''
-    conn = Connection(module, host, user, password, command=cmd)
+def _run(module, host, user, password, cmd, env=None):
+    '''Execute cmd over SSH with optional channel-level env vars.'''
+    conn = Connection(module, host, user, password, command=cmd, env=env)
     rc, out = conn.run()
     lines = out if isinstance(out, list) else (out.splitlines() if out else [])
     return int(rc), lines
 
 
 def _assignment_exists(module, host, user, password,
-                       os_username, os_password,
-                       role, project, ldap_user, ldap_group):
+                       env_args, role, project, ldap_user, ldap_group):
     '''Return True when the role assignment already exists.
 
     Uses ``openstack role assignment list`` scoped to the given project,
@@ -330,15 +373,15 @@ def _assignment_exists(module, host, user, password,
         f"--project '{project}' --role '{role}' "
         f"{subject_flag} -f value"
     )
-    rc, lines = _run(module, host, user, password,
-                     _wrap(os_username, os_password, query))
+    env = _os_env_dict(*env_args)
+    rc, lines = _run(module, host, user, password, _wrap(query), env=env)
     if rc != 0:
         return False
     # Any non-empty, non-header output means the assignment is present.
     return any(line.strip() for line in lines)
 
 
-def _list_tenant_projects(module, host, user, password, os_username, os_password):
+def _list_tenant_projects(module, host, user, password, env_args):
     '''Return project names, excluding infrastructure ones.
 
     Mirrors the reference shell loop:
@@ -346,9 +389,9 @@ def _list_tenant_projects(module, host, user, password, os_username, os_password
                          grep -v service | grep -v ID | awk '{print $2}')
     Returns a list of project name strings.
     '''
-    cmd = _wrap(os_username, os_password,
-                "openstack project list -f value -c Name")
-    rc, lines = _run(module, host, user, password, cmd)
+    env = _os_env_dict(*env_args)
+    cmd = _wrap("openstack project list -f value -c Name")
+    rc, lines = _run(module, host, user, password, cmd, env=env)
     if rc != 0:
         return []
     projects = []
@@ -364,8 +407,7 @@ def _list_tenant_projects(module, host, user, password, os_username, os_password
 
 
 def _handle_single(module, host, user, password,
-                   os_username, os_password,
-                   state, role, project, ldap_user, ldap_group,
+                   env_args, state, role, project, ldap_user, ldap_group,
                    check_mode):
     '''Add or remove a single role assignment.
 
@@ -376,8 +418,9 @@ def _handle_single(module, host, user, password,
     subject_label = ldap_user or ldap_group
 
     exists = _assignment_exists(module, host, user, password,
-                                os_username, os_password,
-                                role, project, ldap_user, ldap_group)
+                                env_args, role, project, ldap_user, ldap_group)
+
+    env = _os_env_dict(*env_args)
 
     if state == 'present':
         if exists:
@@ -393,8 +436,7 @@ def _handle_single(module, host, user, password,
             return (True, 0, [],
                     f"[CHECK MODE] Would run: {action_cmd}")
 
-        rc, lines = _run(module, host, user, password,
-                         _wrap(os_username, os_password, action_cmd))
+        rc, lines = _run(module, host, user, password, _wrap(action_cmd), env=env)
         if rc != 0:
             return (False, rc, lines,
                     f"openstack role add failed for project '{project}' rc={rc}")
@@ -416,8 +458,7 @@ def _handle_single(module, host, user, password,
             return (True, 0, [],
                     f"[CHECK MODE] Would run: {action_cmd}")
 
-        rc, lines = _run(module, host, user, password,
-                         _wrap(os_username, os_password, action_cmd))
+        rc, lines = _run(module, host, user, password, _wrap(action_cmd), env=env)
         if rc != 0:
             return (False, rc, lines,
                     f"openstack role remove failed for project '{project}' rc={rc}")
@@ -431,14 +472,24 @@ def run_openstack_commands(module):
     host = p['login_host']
     user = p['login_user']
     password = p['login_password']
-    os_username = p['os_username']
-    os_password = p['os_password']
     state = p['state']
     role = p.get('role')
     project = p.get('project')
     ldap_user = p.get('ldap_user')
     ldap_group = p.get('ldap_group')
     all_projects = p.get('all_projects', False)
+
+    # Resolve OpenStack env values — user-supplied wins, otherwise default.
+    os_auth_url = p['os_auth_url'] or f"https://{host}:5000/v3"
+    env_args = (
+        os_auth_url,
+        p['os_username'],
+        p['os_password'],
+        p['os_project'],
+        p['os_user_domain_name'],
+        p['os_project_domain_name'],
+        p['os_identity_api_version'],
+    )
 
     # --- Parameter validation ---
     if state in ('present', 'absent'):
@@ -458,9 +509,9 @@ def run_openstack_commands(module):
 
     # --- state=list ---
     if state == 'list':
-        cmd = _wrap(os_username, os_password,
-                    f"openstack role assignment list --project '{project}'")
-        rc, lines = _run(module, host, user, password, cmd)
+        env = _os_env_dict(*env_args)
+        cmd = _wrap(f"openstack role assignment list --project '{project}'")
+        rc, lines = _run(module, host, user, password, cmd, env=env)
         if rc != 0:
             err = '\n'.join(lines)
             module.fail_json(changed=False, rc=rc,
@@ -477,8 +528,7 @@ def run_openstack_commands(module):
     if not all_projects:
         changed, rc, lines, msg = _handle_single(
             module, host, user, password,
-            os_username, os_password,
-            state, role, project, ldap_user, ldap_group,
+            env_args, state, role, project, ldap_user, ldap_group,
             module.check_mode
         )
         if rc != 0:
@@ -486,8 +536,7 @@ def run_openstack_commands(module):
         module.exit_json(changed=changed, rc=rc, stdout_lines=lines, msg=msg)
 
     # --- state=present / state=absent, all_projects=true ---
-    projects = _list_tenant_projects(module, host, user, password,
-                                     os_username, os_password)
+    projects = _list_tenant_projects(module, host, user, password, env_args)
     if not projects:
         module.exit_json(
             changed=False, rc=0, stdout_lines=[],
@@ -502,8 +551,7 @@ def run_openstack_commands(module):
     for proj in projects:
         changed_p, rc_p, lines_p, msg_p = _handle_single(
             module, host, user, password,
-            os_username, os_password,
-            state, role, proj, ldap_user, ldap_group,
+            env_args, state, role, proj, ldap_user, ldap_group,
             module.check_mode
         )
         all_lines.append(f"[{proj}] {msg_p}")
@@ -533,6 +581,11 @@ def main():
             login_password=dict(type='str', required=True, no_log=True),
             os_username=dict(type='str', required=True),
             os_password=dict(type='str', required=True, no_log=True),
+            os_auth_url=dict(type='str', default=None),
+            os_project=dict(type='str', default='service'),
+            os_user_domain_name=dict(type='str', default='Default'),
+            os_project_domain_name=dict(type='str', default='Default'),
+            os_identity_api_version=dict(type='str', default='3'),
             state=dict(type='str', required=True,
                        choices=['present', 'absent', 'list']),
             role=dict(type='str'),
