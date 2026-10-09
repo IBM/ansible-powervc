@@ -1,37 +1,25 @@
 ---
-- name: "Remote command execution"
+- name: "Remote command execution - with env vars (e.g. openstack CLI)"
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
     - ../vars/secret.yml
 
   tasks:
-    - name: "Run command on PowerVC Controller"
+    - name: "Run openstack CLI command with channel-level env vars"
       ibm.powervc.cli.command:
         login_host: "{{ ipaddress }}"
         login_user: "{{ pvc_user }}"
         login_password: "{{ pvcroot_password }}"
-        command: "{{ command }}"
-        messages: "{{ messages }}"
-      register: result
-
-    - name: "Show stdout"
-      debug:
-        var: result.stdout_lines
-
----
-- name: "Remote command execution"
-  hosts: localhost
-  vars_files:
-    - ../vars/powervc.yml
-    - ../vars/secret.yml
-
-  tasks:
-    - name: "Run command on PowerVC Controller"
-      ibm.powervc.cli.command:
-        login_host: "{{ ipaddress }}"
-        login_user: "{{ pvc_user }}"
-        login_password: "{{ pvcroot_password }}"
+        env:
+          OS_AUTH_URL: "https://{{ ipaddress }}:5000/v3"
+          OS_USERNAME: "{{ os_username }}"
+          OS_PASSWORD: "{{ os_password }}"
+          OS_PROJECT_NAME: "{{ os_project | default('service') }}"
+          OS_USER_DOMAIN_NAME: "{{ os_user_domain_name | default('Default') }}"
+          OS_PROJECT_DOMAIN_NAME: "{{ os_project_domain_name | default('Default') }}"
+          OS_IDENTITY_API_VERSION: "{{ os_identity_api_version | default('3') }}"
+          PYTHONHTTPSVERIFY: "0"
         command: "{{ command }}"
       register: result
 
@@ -40,7 +28,7 @@
         var: result.stdout_lines
 
 ---
-- name: "Remote command execution"
+- name: "Remote command execution - interactive"
   hosts: localhost
   vars_files:
     - ../vars/powervc.yml
