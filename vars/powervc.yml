@@ -1,6 +1,8 @@
 ipaddress: ""
 pvc_user: ""
 command: ""
+messages: {}    # Interactive prompt map: { "regex pattern": "reply" }
+env: {}         # Environment variables to inject before the command: { VAR: value }
 virtual_ip: ""
 node_count: 1   # Positive integer
 cluster_name: ""

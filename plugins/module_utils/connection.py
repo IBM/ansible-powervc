@@ -25,6 +25,42 @@ _CMD_TIMEOUT = 3600
 _POLL_INTERVAL = 0.1
 
 
+def build_os_env(os_auth_url, os_username, os_password, os_project,
+                 os_user_domain_name='Default', os_project_domain_name='Default',
+                 os_identity_api_version='3'):
+    """
+    Build the OpenStack environment variable dict required by the ``openstack``
+    CLI tool.
+
+    All callers — ``command``, ``openstack_commands``, or any future module —
+    should use this shared helper so the set of required variables is defined
+    in exactly one place.
+
+    ``PYTHONHTTPSVERIFY=0`` suppresses Python TLS warnings for PowerVC's
+    self-signed certificate.
+
+    :param str os_auth_url:              Full Keystone endpoint URL.
+    :param str os_username:              OpenStack / Keystone username.
+    :param str os_password:              Password for os_username.
+    :param str os_project:               Project scope for the auth token.
+    :param str os_user_domain_name:      Keystone user domain (default: Default).
+    :param str os_project_domain_name:   Keystone project domain (default: Default).
+    :param str os_identity_api_version:  Keystone API version (default: 3).
+    :return dict: Environment variable dict ready to pass as ``env=`` to
+                  :class:`Connection`.
+    """
+    return {
+        'OS_AUTH_URL': os_auth_url,
+        'OS_USERNAME': os_username,
+        'OS_PASSWORD': os_password,
+        'OS_PROJECT_NAME': os_project,
+        'OS_USER_DOMAIN_NAME': os_user_domain_name,
+        'OS_PROJECT_DOMAIN_NAME': os_project_domain_name,
+        'OS_IDENTITY_API_VERSION': os_identity_api_version,
+        'PYTHONHTTPSVERIFY': '0',
+    }
+
+
 def clean_output(s):
     """
     Strip terminal control sequences and normalise whitespace.
@@ -62,7 +98,7 @@ class Connection:
     the end of the module's ``main()`` function.
     """
 
-    def __init__(self, module, host_ip, user, password, command=None, messages=None):
+    def __init__(self, module, host_ip, user, password, command=None, messages=None, env=None):
         """
         :param module:      Ansible module instance (used for host-key-checking env)
         :param str host_ip: Controller IP / hostname
@@ -70,6 +106,11 @@ class Connection:
         :param str password:SSH login password  (never placed on the command line)
         :param str command: CLI command to execute on :meth:`run`
         :param dict messages: ``{pattern: reply}`` map for interactive prompts
+        :param dict env:    Environment variables to set on the SSH channel via
+                            ``update_environment()`` before executing the command.
+                            Injected at the SSH protocol level so they are never
+                            visible on the command line and bypass any shell
+                            restrictions (e.g. rbash blocking ``export``).
         """
         self.module = module
         self.host_ip = host_ip
@@ -77,6 +118,7 @@ class Connection:
         self.password = password
         self.cmd = command
         self.messages = messages or {}
+        self.env = env or {}
         self.logger = _make_logger()
 
         # Shared Transport — created once, reused across run() calls.
@@ -235,7 +277,20 @@ class Connection:
         # time limit.  A socket timeout on recv() would fire prematurely for
         # long-running commands and is redundant with our deadline check.
         chan.settimeout(None)
-        chan.exec_command(self.cmd)
+        cmd = self.cmd
+        if self.env:
+            # Prepend env vars inline as KEY='value' so they are guaranteed
+            # to reach the executed process regardless of whether the sshd
+            # AcceptEnv / PermitUserEnvironment is configured.
+            # update_environment() is unreliable: some sshd builds silently
+            # accept the channel request but never propagate the variables.
+            prefix = ' '.join(
+                # Single-quote each value; escape embedded single quotes.
+                "{}='{}'".format(k, v.replace("'", "'\\''"))
+                for k, v in self.env.items()
+            )
+            cmd = f"{prefix} {cmd}"
+        chan.exec_command(cmd)
 
         stdout_chunks = []
         stderr_chunks = []
@@ -290,7 +345,14 @@ class Connection:
         chan = transport.open_session()
         chan.get_pty()
         chan.settimeout(None)
-        chan.exec_command(self.cmd)
+        cmd = self.cmd
+        if self.env:
+            prefix = ' '.join(
+                "{}='{}'".format(k, v.replace("'", "'\\''"))
+                for k, v in self.env.items()
+            )
+            cmd = f"{prefix} {cmd}"
+        chan.exec_command(cmd)
 
         buf = ''
 
