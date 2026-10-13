@@ -319,7 +319,6 @@ from ansible_collections.ibm.powervc.plugins.module_utils.connection import Conn
 _SKIP_PROJECTS = frozenset({'powervm', 'service'})
 
 
-
 def _wrap(openstack_cmd):
     '''Append ``--insecure`` to an openstack CLI command string.
 
