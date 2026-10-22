@@ -1,0 +1,594 @@
+---
+# Example 1: Enable pvcraid command
+- name: "RAID Configuration - Enable pvcraid"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Enable pvcraid command via chpvc raid enable"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        action: enable
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 2: Disable pvcraid command
+- name: "RAID Configuration - Disable pvcraid"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Disable pvcraid command via chpvc raid disable"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        action: disable
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 3: List SCSI disk identifiers
+- name: "RAID Configuration - diskshow list"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "List SCSI Disk Identifiers"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: diskshow
+        operation: list
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 4: Write SCSI disk identifiers
+- name: "RAID Configuration - diskshow write"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Write SCSI Disk Identifiers"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: diskshow
+        operation: write
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 5: Rescan SCSI disks
+- name: "RAID Configuration - diskshow rescan"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Rescan SCSI Disk Identifiers"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: diskshow
+        operation: rescan
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 6: Build initramfs
+- name: "RAID Configuration - dracut build"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Build initramfs with multipath, mdraid, lvm, and network support"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: dracut
+        operation: build
+        image: "{{ raid_dracut_image }}"
+        kernel: "{{ raid_dracut_kernel }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 7: Run grub2-mkconfig inside a chroot
+- name: "RAID Configuration - grub mkconfig"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Run grub2-mkconfig inside a chroot"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: grub
+        operation: mkconfig
+        mountpoint: "{{ raid_mountpoint }}"
+        output: "{{ raid_grub_output }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 8: Replace DEVROOTFS in grub.cfg
+- name: "RAID Configuration - grub set-devrootfs"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Replace 'set DEVROOTFS=...' in /boot/grub2/grub.cfg"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: grub
+        operation: set-devrootfs
+        device: "{{ raid_grub_device }}"
+        grub_cfg: "{{ raid_grub_cfg }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 9: Rewrite 39_powervc-fs-uuid grub script
+- name: "RAID Configuration - grub rewrite-fs-uuid"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Rewrite 39_powervc-fs-uuid script to hardcode DEVROOTFS=LABEL=rootfs"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: grub
+        operation: rewrite-fs-uuid
+        mountpoint: "{{ raid_mountpoint }}"
+        grub_d_dir: "{{ raid_grub_d_dir }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 10: Rewrite 41_powervc-normal-boot grub script
+- name: "RAID Configuration - grub rewrite-normal-boot"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Add rd.md.uuid params to 41_powervc-normal-boot script"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: grub
+        operation: rewrite-normal-boot
+        md_uuid: "{{ raid_md_uuid }}"
+        settle_timeout: "{{ raid_settle_timeout }}"
+        mountpoint: "{{ raid_mountpoint }}"
+        grub_d_dir: "{{ raid_grub_d_dir }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 11: Verify RAID boot parameters in grub.cfg
+- name: "RAID Configuration - grub verify"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Print ROOTFS_UUID, DEVROOTFS, and rd.md.uuid lines from grub.cfg"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: grub
+        operation: verify
+        grub_cfg: "{{ raid_grub_cfg }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 12: Replace kernel boot line in grub.cfg
+- name: "RAID Configuration - grub set-bootline"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Replace linux /boot/<image> line with multipath and md.uuid boot parameters"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: grub
+        operation: set-bootline
+        grub_image: "{{ raid_grub_image }}"
+        md_uuid: "{{ raid_md_uuid }}"
+        settle_timeout: "{{ raid_settle_timeout }}"
+        grub_cfg: "{{ raid_grub_cfg }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 13: Backup boot images
+- name: "RAID Configuration - imgbackup run"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Backup /boot/img2a and /boot/img3a, copy vmlinuz to /boot/img2a"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: imgbackup
+        operation: run
+        kernel: "{{ raid_dracut_kernel }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 14: Update LVM config to scan /dev/md
+- name: "RAID Configuration - lvmconf update"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Add /dev/md to LVM scan and filter for RAID migration"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: lvmconf
+        operation: update
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 15: Write /etc/mdadm.conf with array UUIDs
+- name: "RAID Configuration - mdadmconf write"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Write /etc/mdadm.conf with MD array device/UUID pairs"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: mdadmconf
+        operation: write
+        arrays: "{{ raid_arrays }}"
+        mailaddr: "{{ raid_mailaddr }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 16: Mount a device
+- name: "RAID Configuration - mount run (device)"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Mount a block device to a mountpoint"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: mount
+        operation: run
+        device: "{{ raid_mount_device }}"
+        mountpoint: "{{ raid_mountpoint }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 17: Bind-mount a directory into a chroot
+- name: "RAID Configuration - mount run (bind)"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Bind-mount /dev into chroot"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: mount
+        operation: run
+        source: /dev
+        mountpoint: "{{ raid_mountpoint }}"
+        bind: true
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 17a: Mount a filesystem by type (e.g. proc, sysfs) into a chroot
+- name: "RAID Configuration - mount run (type)"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Mount a filesystem of the given type into the mountpoint"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: mount
+        operation: run
+        source: "{{ raid_mount_source }}"
+        fstype: "{{ raid_mount_fstype }}"
+        mountpoint: "{{ raid_mountpoint }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 18: Configure IBM 2145 Multipath
+- name: "RAID Configuration - multipath configure"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Write /etc/multipath.conf and apply IBM 2145 multipath configuration"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: multipath
+        operation: configure
+        polling_interval: "{{ raid_polling_interval }}"
+        path_grouping_policy: "{{ raid_path_grouping_policy }}"
+        path_selector: "{{ raid_path_selector }}"
+        prio: "{{ raid_prio }}"
+        path_checker: "{{ raid_path_checker }}"
+        failback: "{{ raid_failback }}"
+        features: "{{ raid_features }}"
+        no_path_retry: "{{ raid_no_path_retry }}"
+        rr_weight: "{{ raid_rr_weight }}"
+        rr_min_io_rq: "{{ raid_rr_min_io_rq }}"
+        dev_loss_tmo: "{{ raid_dev_loss_tmo }}"
+        alias_prefix: "{{ raid_alias_prefix }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 19: Write multipath bindings file
+- name: "RAID Configuration - multipath write-bindings"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Write /etc/multipath/bindings with alias-to-WWID mappings"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: multipath
+        operation: write-bindings
+        aliases: "{{ raid_aliases }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 20: Create RAID configuration file
+- name: "RAID Configuration - raidconf create"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Create /powervcdata/etc/raid/raid.conf"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: raidconf
+        operation: create
+        raid_enabled: "{{ raid_enabled }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 21: Remove empty directories
+- name: "RAID Configuration - rmdir run"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Remove one or more empty directories"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: rmdir
+        operation: run
+        dirs: "{{ raid_dirs }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 22: Rsync root filesystem to RAID destination
+- name: "RAID Configuration - rsync run"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Rsync source directory to RAID destination"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: rsync
+        operation: run
+        rsync_source: "{{ raid_rsync_source }}"
+        rsync_dest: "{{ raid_rsync_dest }}"
+        excludes: "{{ raid_excludes }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 23: Flush filesystem buffers to disk
+- name: "RAID Configuration - sync run"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Flush all pending filesystem writes to disk"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: sync
+        operation: run
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 24: Unmount a chroot stack (deepest first)
+- name: "RAID Configuration - umount run"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Unmount chroot mountpoints in reverse-mount order"
+      ibm.powervc.cli.raid_configuration:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        subcommand: umount
+        operation: run
+        mountpoints: "{{ raid_mountpoints }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
