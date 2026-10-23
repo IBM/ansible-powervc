@@ -1,0 +1,79 @@
+---
+- name: "PowerVC LVM Auto-Expander (pvcexpand)"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Display current allocated disk space (no modifications)"
+      ibm.powervc.cli.pvcexpand:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: absent
+      register: result
+
+    - name: "Show current allocation output"
+      debug:
+        var: result.stdout_lines
+
+- name: "PowerVC LVM Auto-Expander (pvcexpand)"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Simulate disk space expansion (dry-run, no modifications)"
+      ibm.powervc.cli.pvcexpand:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: present
+        dry_run: true
+      register: result
+
+    - name: "Show dry-run output"
+      debug:
+        var: result.stdout_lines
+
+- name: "PowerVC LVM Auto-Expander (pvcexpand)"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Allocate new disk space (apply modifications)"
+      ibm.powervc.cli.pvcexpand:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: present
+        dry_run: false
+        silent: "{{ pvcexpand_silent | default(false) }}"
+      register: result
+
+    - name: "Show apply output"
+      debug:
+        var: result.stdout_lines
+
+- name: "PowerVC LVM Auto-Expander (pvcexpand)"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Display latest disk allotment after apply"
+      ibm.powervc.cli.pvcexpand:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        state: absent
+      register: result
+
+    - name: "Show latest allocation output"
+      debug:
+        var: result.stdout_lines
