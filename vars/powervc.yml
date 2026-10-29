@@ -182,14 +182,6 @@ role_mapping_ldap_user: ""       # LDAP user to map (mutually exclusive with rol
 role_mapping_ldap_group_viewer: ""  # LDAP group to assign the viewer role
 
 # RAID Configuration Variables (raid_configuration module)
-# action — enable/disable pvcraid (mutually exclusive with subcommand)
-raid_action: ""              # Options: enable, disable
-
-# subcommand + operation — pvcraid top-level command and its sub-subcommand
-raid_subcommand: ""          # Options: diskshow, dracut, grub, imgbackup, lvmconf,
-                             #   mdadmconf, mount, multipath, raidconf, rmdir, rsync, sync, umount
-raid_operation: ""           # Sub-subcommand; see module documentation for valid values per subcommand
-
 # dracut build / imgbackup run
 raid_dracut_image: ""        # Output initramfs image path, e.g. /boot/img3a  (required: dracut build)
 raid_dracut_kernel: ""       # Kernel version string, e.g. output of uname -r  (required: dracut build, imgbackup run)
@@ -210,10 +202,22 @@ raid_mailaddr: ""            # MAILADDR for /etc/mdadm.conf  (optional; default:
 
 # mount run
 raid_mount_device: ""        # Block device to mount, e.g. /dev/md0  (required unless source is set)
+raid_mount_source: ""        # Source for bind/type mounts, e.g. /dev, proc, sysfs  (required unless device is set)
+raid_mount_fstype: ""        # Filesystem type for -t, e.g. proc, sysfs  (optional)
 
 # multipath configure
 raid_polling_interval: 30    # polling_interval in defaults{}
 raid_alias_prefix: ""        # Alias prefix for multipaths{} entries  (optional; default: rootvg-disk)
+raid_path_grouping_policy: ""  # path_grouping_policy  (optional; default: group_by_prio)
+raid_path_selector: ""       # path_selector, e.g. "service-time 0"  (optional; default: "service-time 0")
+raid_prio: ""                # prio  (optional; default: alua)
+raid_path_checker: ""        # path_checker  (optional; default: tur)
+raid_failback: ""            # failback  (optional; default: immediate)
+raid_features: ""            # features, e.g. "0" to fail I/O immediately when all paths are lost  (optional; default: "0")
+raid_no_path_retry: ""       # no_path_retry: "fail" or a number of retries  (optional; default: fail)
+raid_rr_weight: ""           # rr_weight  (optional; default: priorities)
+raid_rr_min_io_rq: 1         # rr_min_io_rq  (default: 1)
+raid_dev_loss_tmo: 120       # dev_loss_tmo in seconds  (default: 120)
 
 # multipath write-bindings
 raid_aliases: []             # List of {alias, wwid} dicts, e.g. [{alias: rootvg-disk1, wwid: "36005..."}]

@@ -1,0 +1,164 @@
+---
+# Example 1: Validate CA certificate (and optionally its chain)
+- name: "PowerVC Certs - Validate CA Certificate"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Validate CA certificate"
+      ibm.powervc.cli.cert_checks:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        ca_cert: "{{ certs_ca_cert }}"
+        validate: true
+        chain: "{{ certs_chain }}"
+        verbose: "{{ certs_verbose }}"
+      register: result
+
+    - name: "Show validation result"
+      debug:
+        var: result
+
+
+# Example 2: Check certificate expiry
+- name: "PowerVC Certs - Check Certificate Expiry"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Check expiry of certificates (default | nl | bn)"
+      ibm.powervc.cli.cert_checks:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        check_expiry: "{{ certs_check_expiry }}"
+        verbose: "{{ certs_verbose }}"
+      register: result
+
+    - name: "Show expiry result"
+      debug:
+        var: result
+
+
+# Example 3: Copy CA cert and key to the standard path
+- name: "PowerVC Certs - Copy CA Cert and Key"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Copy CA cert and key to standard path"
+      ibm.powervc.cli.cert_checks:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        ca_cert: "{{ certs_ca_cert }}"
+        ca_key: "{{ certs_ca_key }}"
+        copy: true
+        verbose: "{{ certs_verbose }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 4: Generate a certificate for a service type
+- name: "PowerVC Certs - Generate Certificate for Service Type"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Generate certificate (rabbit | zookeeper | powervc | novnc | db | memcached)"
+      ibm.powervc.cli.cert_checks:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        cert_type: "{{ certs_type }}"
+        verbose: "{{ certs_verbose }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 5: Sync certificates to other nodes
+- name: "PowerVC Certs - Sync Certificates"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Sync certs (default | secondary | nl | bn)"
+      ibm.powervc.cli.cert_checks:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        sync: "{{ certs_sync }}"
+        verbose: "{{ certs_verbose }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 6: Restart PowerVC services
+- name: "PowerVC Certs - Restart Services"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Restart services (default | nl | bn)"
+      ibm.powervc.cli.cert_checks:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        restart: "{{ certs_restart }}"
+        verbose: "{{ certs_verbose }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
+
+
+# Example 7: Rollback to PowerVC provided certificates
+- name: "PowerVC Certs - Rollback"
+  hosts: localhost
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Rollback to PowerVC provided certificates"
+      ibm.powervc.cli.cert_checks:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        cluster: "{{ cluster_name }}"
+        rollback: true
+        verbose: "{{ certs_verbose }}"
+      register: result
+
+    - name: "Show result"
+      debug:
+        var: result
