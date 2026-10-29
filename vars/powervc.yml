@@ -235,3 +235,25 @@ raid_excludes: []            # List of extra exclude patterns, e.g. ["/home/*"]
 
 # umount run
 raid_mountpoints: []         # List of mountpoints in reverse-mount order (deepest first)
+
+# Diagnostic Collection Variables (diag module)
+diag_action: "collect"                        # Options: collect, fetch, collect_and_fetch
+diag_command: "powervc-diag"                  # Diagnostic command (default: powervc-diag; override for PVCVA if needed)
+diag_os_user: ""                              # PowerVC user for diagnostic auth (-u USER, default: OS_USERNAME or whoami)
+diag_os_project: ""                           # PowerVC project for diagnostic auth (-r PROJECT, default: "ibm-default")
+diag_output_dir: "/powervchome/diagnostics"   # Directory on appliance where bundle is stored
+diag_archive_fname: ""                        # Custom archive filename prefix (e.g. PowerVC-TS123456789)
+diag_verbose: false                           # Enable verbose diagnostic collection
+diag_management_node_only: false              # Collect logs only from management node (skip HMC and Novalink)
+diag_current_node_only: false                 # Collect diagnostics for current node only
+diag_maxwait: 120                             # Timeout in seconds for individual diagnostic sub-commands (120-300)
+diag_addfile: ""                              # Additional file path or list of files to include in bundle
+diag_services: []                             # List or comma-separated services: nova, cinder, glance, neutron, keystone, etc.
+diag_hmc_list: ""                             # HMC hostnames/IPs or "all" to collect HMC diagnostics
+# diag_hmc_password should be stored in vars/secret.yml (no_log: true)
+diag_novalink_list: ""                        # Novalink hostnames/IPs or "all" to collect Novalink diagnostics
+diag_imagenode_list: ""                       # Image node hostnames/IPs or "all" to collect Image node diagnostics
+diag_nfs_server: ""                           # NFS server hostname/IP for direct transfer
+diag_nfs_path: ""                             # Exported NFS path (required when diag_nfs_server is set)
+diag_bundle_path: ""                          # Remote bundle path on appliance (required for action: fetch)
+diag_fetch_dest: "/tmp/powervc_diagnostics/"  # Local destination directory or file path on Ansible controller

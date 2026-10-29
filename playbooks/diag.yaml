@@ -1,0 +1,198 @@
+---
+# diag.yaml
+#
+# Playbook for collecting and managing diagnostic data on PowerVC / PVCVA appliances.
+
+- name: "Collect diagnostic data on PowerVC Controller"
+  hosts: localhost
+  tags:
+    - default
+    - collect
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Trigger diagnostic collection"
+      ibm.powervc.cli.diag:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        action: "collect"
+        os_user: "{{ diag_os_user | default(omit) }}"
+        os_project: "{{ diag_os_project | default(omit) }}"
+        archive_fname: "{{ diag_archive_fname | default(omit) }}"
+        output_dir: "{{ diag_output_dir | default(omit) }}"
+        verbose: "{{ diag_verbose | default(false) }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
+
+
+- name: "Collect diagnostics and download bundle locally"
+  hosts: localhost
+  tags:
+    - collect_and_fetch
+    - retrieve
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Trigger diagnostic collection and fetch archive bundle"
+      ibm.powervc.cli.diag:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        action: "collect_and_fetch"
+        os_user: "{{ diag_os_user | default(omit) }}"
+        os_project: "{{ diag_os_project | default(omit) }}"
+        archive_fname: "{{ diag_archive_fname | default(omit) }}"
+        output_dir: "{{ diag_output_dir | default(omit) }}"
+        fetch_dest: "{{ diag_fetch_dest | default('/tmp/powervc_diagnostics/') }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
+
+
+- name: "Collect diagnostic data for specific PowerVC services"
+  hosts: localhost
+  tags:
+    - services
+    - service_diag
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Trigger diagnostic collection for specified services"
+      ibm.powervc.cli.diag:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        action: "collect"
+        os_user: "{{ diag_os_user | default(omit) }}"
+        os_project: "{{ diag_os_project | default(omit) }}"
+        services: "{{ diag_services | default(['nova', 'cinder', 'glance', 'keystone']) }}"
+        archive_fname: "{{ diag_archive_fname | default(omit) }}"
+        output_dir: "{{ diag_output_dir | default(omit) }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
+
+
+- name: "Collect diagnostic data from management node only"
+  hosts: localhost
+  tags:
+    - mgmt_only
+    - mgmt_diag
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Trigger management-node-only diagnostic collection"
+      ibm.powervc.cli.diag:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        action: "collect_and_fetch"
+        os_user: "{{ diag_os_user | default(omit) }}"
+        os_project: "{{ diag_os_project | default(omit) }}"
+        management_node_only: true
+        archive_fname: "{{ diag_archive_fname | default(omit) }}"
+        fetch_dest: "{{ diag_fetch_dest | default('/tmp/powervc_diagnostics/') }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
+
+
+- name: "Collect diagnostic data including HMC and Novalink nodes"
+  hosts: localhost
+  tags:
+    - hmc_novalink
+    - infra_diag
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Trigger infrastructure diagnostic collection"
+      ibm.powervc.cli.diag:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        action: "collect_and_fetch"
+        os_user: "{{ diag_os_user | default(omit) }}"
+        os_project: "{{ diag_os_project | default(omit) }}"
+        hmc_list: "{{ hmc_namelist | default('all') }}"
+        hmc_password: "{{ hmc_password | default(omit) }}"
+        novalink_list: "{{ novalink_namelist | default('all') }}"
+        maxwait: "{{ diag_maxwait | default(180) }}"
+        fetch_dest: "{{ diag_fetch_dest | default('/tmp/powervc_diagnostics/') }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
+
+
+- name: "Collect diagnostic data and transfer directly to NFS server"
+  hosts: localhost
+  tags:
+    - nfs
+    - nfs_diag
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Trigger diagnostic collection and push to NFS"
+      ibm.powervc.cli.diag:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        action: "collect"
+        os_user: "{{ diag_os_user | default(omit) }}"
+        os_project: "{{ diag_os_project | default(omit) }}"
+        nfs_server: "{{ diag_nfs_server }}"
+        nfs_path: "{{ diag_nfs_path }}"
+        archive_fname: "{{ diag_archive_fname | default(omit) }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
+
+
+- name: "Fetch existing diagnostic bundle from PowerVC Controller"
+  hosts: localhost
+  tags:
+    - fetch_only
+    - fetch
+  vars_files:
+    - ../vars/powervc.yml
+    - ../vars/secret.yml
+
+  tasks:
+    - name: "Copy bundle from appliance to Ansible controller"
+      ibm.powervc.cli.diag:
+        login_host: "{{ ipaddress }}"
+        login_user: "{{ pvc_user }}"
+        login_password: "{{ pvcroot_password }}"
+        action: "fetch"
+        bundle_path: "{{ diag_bundle_path }}"
+        fetch_dest: "{{ diag_fetch_dest | default('/tmp/powervc_diagnostics/') }}"
+      register: result
+
+    - name: "Show stdout"
+      debug:
+        var: result
