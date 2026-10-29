@@ -100,23 +100,28 @@ scale_config_restart_timeout: ""    # Seconds to wait per Pacemaker resource aft
 resource: ""  # Options: disk, proc, mem, swap, inode
 interval: 0   # Always to be 0
 
-#pvcexpand variables
-pvcexpand_state: "present"  # Options: present (modify/expand), absent (display)
-pvcexpand_dry_run: false    # Options: true, false (simulate expansion when state=present)
-pvcexpand_silent: false     # Options: true, false (run in silent mode)
-
 #config_policy variables
 policy: "" # Options: ppc, restricted
 
 # PowerVC OpsMgr Update Variables
-update_node: ""                         # Controller node hostname/IP for rolling upgrade
+update_node: ""                         # Controller node hostname/IP for rolling upgrade or controller ifix
 update_skip_restart: false              # Skip restart for tasks with restart tag
-update_force: false                     # Force update operation
+update_list_ifixes: false               # List applied ifixes (combine with update_remote_node for remote nodes)
+update_force: false                     # Force update/ifix operation
 update_verbose: false                   # Enable verbose output during update
+update_ifix_isopath: ""                 # Absolute path of ifix ISO file on the controller
 update_prepare_isopath: ""              # Local ISO path or URL for system preparation
 update_offline_mode: false              # Block all API/UI calls during update (no node required)
 update_skip_remote_node_upgrade: false  # Skip remote node (Novalink, compute, cinder backup) upgrade
-update_state: "present"                 # State: present (update/prepare), absent (cleanup)
+update_state: "present"                 # State: present (update/prepare/ifix), absent (cleanup)
+
+# Remote-node ifix variables (use with update_remote_node: true)
+update_remote_node: false               # Operate on remote nodes (novalinks and image nodes)
+update_all_remotenodes: false           # Apply ifix on all remote nodes (novalinks + image nodes)
+update_all_novalinks: false             # Apply ifix on all novalink nodes only
+update_all_imagenodes: false            # Apply ifix on all image nodes only
+update_apply_specificnodes: []          # List of remote node IPs to apply ifix on
+update_skip_remotenodes_ifix: []        # List of remote node IPs to skip when applying ifix
 
 # ISO download variables (use with update_prepare_isopath as URL)
 update_prepare_url: ""                  # URL to download ISO from (used as prepare_isopath)
@@ -124,29 +129,6 @@ update_http_username: ""                # HTTP Basic Auth username for ISO downl
 update_http_password: ""                # HTTP Basic Auth password for ISO download (use vault)
 update_download_only: false             # Download ISO only, do not run setup-iso or update
 update_download_destination: ""         # Destination directory for ISO download on controller
-
-# PowerVC OpsMgr iFix Variables
-ifix_node: ""                           # Controller node hostname/IP for targeting controller ifix
-ifix_isopath: ""                        # Absolute path of ifix ISO file on the controller
-ifix_list_ifixes: false                 # List applied ifixes from cluster
-ifix_force: false                       # Force ifix operation
-ifix_verbose: false                     # Enable verbose output during ifix operation
-ifix_remote_node: false                 # Operate on remote nodes (novalinks and image nodes)
-ifix_all_remotenodes: false             # Apply ifix on all remote nodes (novalinks + image nodes)
-ifix_all_novalinks: false               # Apply ifix on all novalink nodes only
-ifix_all_imagenodes: false              # Apply ifix on all image nodes only
-ifix_apply_specificnodes: []            # List of remote node IPs to apply ifix on
-ifix_skip_remotenodes_ifix: []          # List of remote node IPs to skip when applying ifix
-
-# PowerVC OpsMgr Certificate Variables (cert_checks)
-certs_ca_cert: ""                       # Path to the CA certificate file on the controller
-certs_ca_key: ""                        # Path to the CA key file on the controller
-certs_chain: false                      # Check the certificate chain (only with validate)
-certs_type: "powervc"                   # rabbit | zookeeper | powervc | novnc | db | memcached
-certs_sync: "default"                   # default | secondary | nl | bn
-certs_restart: "default"                # default | nl | bn
-certs_check_expiry: "default"           # default | nl | bn
-certs_verbose: false                    # Enable verbose output
 
 # PowerVC OpsMgr Upgrade Variables
 upgrade_force: false                    # Force the upgrade operation
@@ -253,3 +235,25 @@ raid_excludes: []            # List of extra exclude patterns, e.g. ["/home/*"]
 
 # umount run
 raid_mountpoints: []         # List of mountpoints in reverse-mount order (deepest first)
+
+# Diagnostic Collection Variables (diag module)
+diag_action: "collect"                        # Options: collect, fetch, collect_and_fetch
+diag_command: "powervc-diag"                  # Diagnostic command (default: powervc-diag; override for PVCVA if needed)
+diag_os_user: ""                              # PowerVC user for diagnostic auth (-u USER, default: OS_USERNAME or whoami)
+diag_os_project: ""                           # PowerVC project for diagnostic auth (-r PROJECT, default: "ibm-default")
+diag_output_dir: "/powervchome/diagnostics"   # Directory on appliance where bundle is stored
+diag_archive_fname: ""                        # Custom archive filename prefix (e.g. PowerVC-TS123456789)
+diag_verbose: false                           # Enable verbose diagnostic collection
+diag_management_node_only: false              # Collect logs only from management node (skip HMC and Novalink)
+diag_current_node_only: false                 # Collect diagnostics for current node only
+diag_maxwait: 120                             # Timeout in seconds for individual diagnostic sub-commands (120-300)
+diag_addfile: ""                              # Additional file path or list of files to include in bundle
+diag_services: []                             # List or comma-separated services: nova, cinder, glance, neutron, keystone, etc.
+diag_hmc_list: ""                             # HMC hostnames/IPs or "all" to collect HMC diagnostics
+# diag_hmc_password should be stored in vars/secret.yml (no_log: true)
+diag_novalink_list: ""                        # Novalink hostnames/IPs or "all" to collect Novalink diagnostics
+diag_imagenode_list: ""                       # Image node hostnames/IPs or "all" to collect Image node diagnostics
+diag_nfs_server: ""                           # NFS server hostname/IP for direct transfer
+diag_nfs_path: ""                             # Exported NFS path (required when diag_nfs_server is set)
+diag_bundle_path: ""                          # Remote bundle path on appliance (required for action: fetch)
+diag_fetch_dest: "/tmp/powervc_diagnostics/"  # Local destination directory or file path on Ansible controller

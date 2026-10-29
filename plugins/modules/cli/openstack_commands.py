@@ -310,13 +310,34 @@ projects_changed:
 '''
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.ibm.powervc.plugins.module_utils.connection import Connection, build_os_env
+from ansible_collections.ibm.powervc.plugins.module_utils.connection import Connection
 
 # Infrastructure project names to exclude when all_projects=true.
 # Matches the reference shell-loop logic:
 #   grep -v powervm | grep -v service | grep -v ID | awk '{print $2}'
 # ibm-default is handled separately (explicit first call in the reference script).
 _SKIP_PROJECTS = frozenset({'powervm', 'service'})
+
+
+def _os_env_dict(os_auth_url, os_username, os_password, os_project,
+                 os_user_domain_name, os_project_domain_name,
+                 os_identity_api_version):
+    '''Return a dict of OpenStack env vars to prepend to the command string.
+
+    All values are caller-supplied; no defaults are applied here.
+    ``PYTHONHTTPSVERIFY=0`` disables Python TLS verification for the
+    self-signed PowerVC certificate.
+    '''
+    return {
+        'OS_AUTH_URL': os_auth_url,
+        'OS_USERNAME': os_username,
+        'OS_PASSWORD': os_password,
+        'OS_PROJECT_NAME': os_project,
+        'OS_USER_DOMAIN_NAME': os_user_domain_name,
+        'OS_PROJECT_DOMAIN_NAME': os_project_domain_name,
+        'OS_IDENTITY_API_VERSION': os_identity_api_version,
+        'PYTHONHTTPSVERIFY': '0',
+    }
 
 
 def _wrap(openstack_cmd):
@@ -352,7 +373,7 @@ def _assignment_exists(module, host, user, password,
         f"--project '{project}' --role '{role}' "
         f"{subject_flag} -f value"
     )
-    env = build_os_env(*env_args)
+    env = _os_env_dict(*env_args)
     rc, lines = _run(module, host, user, password, _wrap(query), env=env)
     if rc != 0:
         return False
@@ -368,7 +389,7 @@ def _list_tenant_projects(module, host, user, password, env_args):
                          grep -v service | grep -v ID | awk '{print $2}')
     Returns a list of project name strings.
     '''
-    env = build_os_env(*env_args)
+    env = _os_env_dict(*env_args)
     cmd = _wrap("openstack project list -f value -c Name")
     rc, lines = _run(module, host, user, password, cmd, env=env)
     if rc != 0:
@@ -399,7 +420,7 @@ def _handle_single(module, host, user, password,
     exists = _assignment_exists(module, host, user, password,
                                 env_args, role, project, ldap_user, ldap_group)
 
-    env = build_os_env(*env_args)
+    env = _os_env_dict(*env_args)
 
     if state == 'present':
         if exists:
@@ -488,7 +509,7 @@ def run_openstack_commands(module):
 
     # --- state=list ---
     if state == 'list':
-        env = build_os_env(*env_args)
+        env = _os_env_dict(*env_args)
         cmd = _wrap(f"openstack role assignment list --project '{project}'")
         rc, lines = _run(module, host, user, password, cmd, env=env)
         if rc != 0:
