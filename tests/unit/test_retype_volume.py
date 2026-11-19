@@ -144,11 +144,16 @@ def test_run_with_on_demand_policy(module, mock_retype_ops):
     )
 
 
+
 # Test 4: Verifies retype operation in check mode.
 def test_run_check_mode(module, mock_retype_ops):
     module.check_mode = True
 
-    retype_volume.RetypeVolModule.run(module)
+    # Simulate Ansible exit_json() terminating execution.
+    module.exit_json.side_effect = SystemExit
+
+    with pytest.raises(SystemExit):
+        retype_volume.RetypeVolModule.run(module)
 
     module.exit_json.assert_called_once_with(
         changed=True,
@@ -156,7 +161,6 @@ def test_run_check_mode(module, mock_retype_ops):
     )
 
     mock_retype_ops.assert_not_called()
-
 
 # Test 5: Verifies failure when volume name is not found.
 def test_run_volume_not_found(module, mock_retype_ops):
