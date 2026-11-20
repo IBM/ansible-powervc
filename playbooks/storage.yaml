@@ -12,6 +12,20 @@
         var: result
 
 
+- name: Get All Storage Systems with Full Details Playbook
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Fetch all storage providers with full details (including secondary storage & replication)
+      ibm.powervc.storage:
+        cloud: "powervc"
+        detail: true
+      register: result
+    - name: Display result
+      ansible.builtin.debug:
+        var: result
+
+
 - name: Get Specific Storage Playbook
   hosts: localhost
   gather_facts: false
@@ -20,6 +34,21 @@
       ibm.powervc.storage:
         cloud: "powervc"
         id: "storage123"
+      register: result
+    - name: Display result
+      ansible.builtin.debug:
+        var: result
+
+
+- name: Get Specific Storage with Full Details Playbook
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Fetch storage provider details by host name
+      ibm.powervc.storage:
+        cloud: "powervc"
+        id: "storage123"
+        detail: true
       register: result
     - name: Display result
       ansible.builtin.debug:
@@ -194,6 +223,48 @@
         host: "1.2.4.5"
         user: "superuser"
         password: "passw0rd"
+      register: result
+    - name: Display result
+      ansible.builtin.debug:
+        var: result
+
+
+- name: Update SVC Storage Secondary Mirroring Playbook
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Configure secondary storage and enable mirroring on SVC
+      ibm.powervc.storage:
+        cloud: "powervc"
+        state: present
+        id: "id12ms_tier1_3"
+        restart: false
+        extra_params:
+          enable_mirror: true
+          enable_gmcv: true
+          mirror_access_ip: "192.168.100.23"
+          mirror_pool: "general-flash-1"
+          mirror_user_id: "superuser"
+          mirror_private_key_data: "{{ lookup('file', '~/.ssh/id_rsa') }}"
+      register: result
+    - name: Display result
+      ansible.builtin.debug:
+        var: result
+
+
+- name: Disable SVC Storage Mirroring Playbook
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Disable mirroring on SVC storage
+      ibm.powervc.storage:
+        cloud: "powervc"
+        state: present
+        id: "id12ms_tier1_3"
+        restart: false
+        extra_params:
+          enable_mirror: false
+          enable_gmcv: false
       register: result
     - name: Display result
       ansible.builtin.debug:

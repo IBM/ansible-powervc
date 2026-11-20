@@ -18,8 +18,8 @@ options:
     default: present
   id:
     description:
-      - host_name of the storage system.
-      - Used in fetching the storage details and for removing the storage
+      - host_name or identifier of the storage system.
+      - Used in fetching specific storage details, updating, and removing the storage.
     type: str
   host:
     description:
@@ -43,7 +43,7 @@ options:
     description:
       - Type of storage system.
     type: str
-    choices: [svc, hitachi, hpe, powermax, purestorage, ds8k]
+    choices: [svc, hitachi, hpe, vmax_rest, purestorage, ds8k]
   volume_pool:
     description:
       - Storage pool name.
@@ -57,26 +57,61 @@ options:
       - Automatically add SSH host key.
     type: bool
     default: true
+  detail:
+    description:
+      - When fetching storage systems (state=present without update/registration payload),
+        retrieves comprehensive storage details including replication status, secondary/mirror
+        storage details, volume pools, and capacities from the C(/storage-providers/detail) endpoint.
+      - When set to C(false), queries the standard OpenStack C(/os-hosts) endpoint.
+    type: bool
+    default: false
   extra_params:
     description:
       - Dictionary for vendor-specific parameters.
-      - For Hitachi, requires C(port) (default 23451), C(rest_api_ip), C(hitachi_ldev_start), and C(hitachi_ldev_end).
-      - For HPE, supports C(port) (default 443).
-      - For PowerMAX, supports C(port) (default 8443).
+      - For SVC / FlashSystem secondary storage and GMCV (Global Mirror with Change Volumes):
+        - C(enable_mirror) (bool): Enable or disable secondary/mirror storage (C(true) or C(false)).
+        - C(enable_gmcv) (bool): Enable or disable Global Mirror with Change Volumes (C(true) or C(false)).
+        - C(mirror_access_ip) (str): IP address or hostname of the secondary SVC/FlashSystem storage.
+        - C(mirror_pool) (str): Storage pool name on the secondary SVC storage system.
+        - C(mirror_user_id) (str): Username for authenticating with the secondary SVC storage system.
+        - C(mirror_password) (str): Password for secondary SVC storage system (automatically masked).
+        - C(mirror_private_key_data) (str): SSH private key data for secondary SVC storage system (automatically masked).
+      - For Hitachi:
+        - C(rest_api_ip) (str): IP of the Hitachi REST API server.
+        - C(rest_api_port) / C(port) (int): Port for REST API (default 443 or 23451).
+        - C(hitachi_ldev_start) (int): Starting LDEV ID.
+        - C(hitachi_ldev_end) (int): Ending LDEV ID.
+        - C(hitachi_thin_pool) (str): Hitachi thin pool name.
+        - C(default_fc_ports) (list): List of default FC ports (e.g. ['CL1-A']).
+        - C(target_fc_ports) (list): List of target FC ports.
+        - C(auto_add_certificate) (bool): Automatically add SSL certificate.
+      - For HPE:
+        - C(port) (int): Port for connection (default 443).
+      - For PowerMAX:
+        - C(port) / C(ssh_port) (int): Port for connection (default 8443).
+        - C(storage_array_id) (str): Storage array ID (e.g. '000120000').
+        - C(auto_add_certificate) (bool): Automatically add SSL certificate.
     type: dict
 '''
 
 EXAMPLES = r'''
-# Get all storage systems
-- name: Get storage
+# Get all storage systems (standard OpenStack summary)
+- name: Get storage systems
   ibm.powervc.storage:
     cloud: powervc
 
-# Get specific storage
-- name: Get storage by id
+# Get all storage systems with full PowerVC details (including secondary storage and replication)
+- name: Get all storage providers with full details
   ibm.powervc.storage:
     cloud: powervc
-    name: storage123
+    detail: true
+
+# Get specific storage provider with full details
+- name: Get storage provider by host name with full details
+  ibm.powervc.storage:
+    cloud: powervc
+    id: "id12ms_tier1_3"
+    detail: true
 
 # Register SVC storage
 - name: Register SVC storage
@@ -89,6 +124,32 @@ EXAMPLES = r'''
     password: passw0rd
     volume_pool: Pool0
     name: SVC-1.2.4.5
+
+# Update SVC storage to enable secondary mirror storage and GMCV
+- name: Configure secondary storage and enable mirroring on SVC
+  ibm.powervc.storage:
+    cloud: powervc
+    state: present
+    id: "id12ms_tier1_3"
+    restart: false
+    extra_params:
+      enable_mirror: true
+      enable_gmcv: true
+      mirror_access_ip: "192.168.100.23"
+      mirror_pool: "general-flash-1"
+      mirror_user_id: "superuser"
+      mirror_private_key_data: "{{ lookup('file', '~/.ssh/id_rsa') }}"
+
+# Update SVC storage to disable mirroring
+- name: Disable mirroring on SVC storage
+  ibm.powervc.storage:
+    cloud: powervc
+    state: present
+    id: "tier1_3"
+    restart: false
+    extra_params:
+      enable_mirror: false
+      enable_gmcv: false
 
 # Register Hitachi storage
 - name: Register Hitachi storage
@@ -146,6 +207,16 @@ from ansible_collections.openstack.cloud.plugins.module_utils.openstack import (
 )
 
 
+SENSITIVE_EXTRA_PARAMS = {
+    "mirror_password",
+    "mirror_private_key_data",
+    "password",
+    "private_key_data",
+    "ssh_key",
+    "user_password",
+}
+
+
 class StorageModule(OpenStackModule):
     argument_spec = dict(
         state=dict(type="str", choices=["present", "absent"], default="present"),
@@ -160,6 +231,7 @@ class StorageModule(OpenStackModule):
         auto_add_host_key=dict(type="bool", default=True),
         extra_params=dict(type="dict", default={}),
         restart=dict(type="bool"),
+        detail=dict(type="bool", default=False),
     )
     module_kwargs = dict(supports_check_mode=True)
 
@@ -174,7 +246,18 @@ class StorageModule(OpenStackModule):
         volume_pool = self.params.get("volume_pool")
         display_name = self.params.get("name")
         auto_add = self.params.get("auto_add_host_key")
-        extra = self.params.get("extra_params")
+        extra = self.params.get("extra_params") or {}
+        detail = self.params.get("detail", False)
+
+        # Mask sensitive keys inside extra_params so they are never leaked in logs
+        for sec_key in SENSITIVE_EXTRA_PARAMS:
+            sec_val = extra.get(sec_key)
+            if sec_val and isinstance(sec_val, (str, bytes)):
+                if hasattr(self, "no_log_values") and isinstance(self.no_log_values, set):
+                    self.no_log_values.add(sec_val)
+                elif hasattr(self, "_no_log_values") and isinstance(self._no_log_values, set):
+                    self._no_log_values.add(sec_val)
+
         authtoken = self.conn.auth_token
         tenant_id = self.conn.session.get_project_id()
         validate_certs = self.params.get("validate_certs")
@@ -251,6 +334,17 @@ class StorageModule(OpenStackModule):
                 body = {
                     "registration": update_fields
                 }
+        is_check_mode = getattr(self.ansible, "check_mode", False) or getattr(self, "check_mode", False)
+        if is_check_mode:
+            if state == "absent":
+                if not storage_id:
+                    self.fail_json(msg="host name from storage specific metadata is required")
+                self.exit_json(changed=True, msg=f"[CHECK MODE] Would remove storage system {storage_id}")
+            elif state == "present" and not storage_id and host:
+                self.exit_json(changed=True, msg=f"[CHECK MODE] Would register {stype} storage system {host}")
+            elif state == "present" and storage_id and body:
+                self.exit_json(changed=True, msg=f"[CHECK MODE] Would update storage system {storage_id}")
+
         result = storage_ops(
             module=self,
             endpoint=endpoint,
@@ -260,6 +354,7 @@ class StorageModule(OpenStackModule):
             state=state,
             storage_id=storage_id,
             body=body,
+            detail=detail,
         )
         self.exit_json(**result)
 
